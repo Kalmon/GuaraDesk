@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#757161">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/x-icon" href="/icone.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body oncontextmenu="return false;">
+    <div id="mainAPP">
+        <div v-if="screen=='key'" class="d-flex justify-content-md-center align-items-center vh-100">
+            <div class="input-group mb-3 w-50">
+                <input type="text" class="form-control" v-model="INPUT_key">
+                <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
+            </div>
+        </div>
+        <div v-else @mousedown="mouseMenu" class="vw-100 vh-100">
+            <nav class="navbar fixed-top navbar-expand-lg bg-body-tertiary">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav w-100">
+                            <li class="nav-item" @click="backDir()">
+                                <a class="nav-link" aria-current="page">
+                                    <i class="fa-solid fa-arrow-left fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item w-50">
+                                <input class="form-control me-2" type="text" v-model="peerDir" v-on:keyup.enter="ls">
+                            </li>
+                            <li class="nav-item" @click="ls(false)">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-house fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="ls(true)">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-rotate fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="uploadFile">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-upload fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="newFolder">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-folder-plus"></i>
+                                </a>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </nav>
+            <div class="container">
+                <div class="row p-3" id="files">
+                    <div v-for="(item, index) in peerFiles"
+                        class="col-4 col-md-2 text-center">
+                        <div :class="MOUSE_filesSelect.includes(`${peerDir}${item.name}`)  ? `card card-body border-0 bg-primary bg-opacity-25` : `card card-body border-0`">
+                            <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])" class="position-relative"
+                                v-on:dblclick="openFD(item)" @click="mouseFDselect(item.name)">
+                                <img :src="`data:image/png;base64, ${item.thumbnail}`" class="w-100">
+                                <img :src="typeFile(item.name,item.isDir)['icon']"
+                                    class="position-absolute bottom-0 end-0 img-icon">
+                            </div>
+                            <div v-else>
+                                <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
+                                    @click="mouseFDselect(item.name)">
+                            </div>
+                        </div>
+
+
+                        <p class="text-truncate" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                            :data-bs-title="item.name">{{item.name}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div :class="MOUSE_menuView ? 'active' : ''" id="context-menu"
+            :style="`top:${MOUSE_menuTop};left:${MOUSE_menuLeft}`" @click="MOUSE_menuView=false">
+            <div class="item">
+                <i class="fa fa-cut"></i> Cut
+            </div>
+            <div class="item">
+                <i class="fa fa-clone"></i> Copy
+            </div>
+            <div class="item">
+                <i class="fa fa-paste"></i> Paste
+            </div>
+            <div v-if="MOUSE_filesSelect.length>0" class="item" @click="deletFilesSelect">
+                <i class="fa fa-trash-o"></i> Deletar
+            </div>
+            <div class="item" @click="uploadFile">
+                <i class="fa-solid fa-upload fa-xl"></i> Upload
+            </div>
+            <div class="item" @click="newFolder">
+                <i class="fa-solid fa-folder-plus"></i> Nova pasta
+            </div>
+            <hr>
+            <div class="item" @click="ls">
+                <i class="fa fa-refresh"></i> Recarregar
+            </div>
+            <div class="item">
+                <i class="fa fa-times"></i> Sair
+            </div>
+        </div>
+
+
+        <!-- Modal: Video - IMG -->
+        <div class="modal fade" id="MODAL_vidImg" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_name}}</h1>
+                        <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="max-vh-65">
+                        <img v-if="typeFile(MODAL_name)['type']=='img'" class="w-100" id="MODAL_img" src="">
+                        <video v-else-if="typeFile(MODAL_name)['type']=='video'" class="max-vh-50 w-100" src=""
+                            id="MODAL_video" width="100%" controls>
+
+                        </video>
+                        <embed v-else-if="typeFile(MODAL_name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
+                            type="application/pdf">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary col">Download</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hide">
+            <input id="INPUT_files" type="file" multiple>
+        </div>
+    </div>
+
+    <script type="text/javascript"
+        src="p2pt.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/bootboxjs/bootbox@6.0.0/dist/bootbox.min.js"></script>
+    <script src="script.js"></script>
+
+    <style>
+
+    </style>
+</body>
+
+</html>
