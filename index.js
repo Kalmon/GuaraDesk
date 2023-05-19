@@ -55,6 +55,7 @@ p2pt.on('peerconnect', (peer) => {
 // If message received from peer
 p2pt.on('msg', async (peer, msg) => {
     if (msg['opc'] == 'ls') {
+        sys.clearTemporario();
         //Lista diretorio
         if (msg['data'] == null) {
             msg['data'] = __dirname + "\\";
@@ -115,7 +116,7 @@ p2pt.on('msg', async (peer, msg) => {
         fs.writeFileSync(`${msg['data']['dir']}${msg['data']['name']}`, msg['data']['base64'], { encoding: "base64" });
         //Remover thumbnail anterior caso tenha...
         try {
-            fs.unlinkSync(`./temporario/${MD5(`${msg['data']['dir']}${msg['data']['name']}`)}`);
+            fs.unlinkSync(`./temp/${MD5(`${msg['data']['dir']}${msg['data']['name']}`)}`);
         } catch (error) {
             //Arquivo não existe, fodasi
         }
@@ -141,20 +142,20 @@ async function sendChunk(peer, base64) {
 async function getThumbnail(File) {
     return await new Promise(async (resolv, reject) => {
         if (!fs.lstatSync(File).isDirectory()) {
-            if (fs.existsSync(`temporario\\${MD5(File)}`)) {
-                resolv(fs.readFileSync(`temporario\\${MD5(File)}`, { encoding: 'utf8' }));
+            if (fs.existsSync(`temp\\${MD5(File)}`)) {
+                resolv(fs.readFileSync(`temp\\${MD5(File)}`, { encoding: 'utf8' }));
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
                 if (['png', 'jpeg', 'jpg'].includes(exten)) {
                     let base64Thumb = await imgThumbnail(File, imgOptions);
-                    fs.writeFileSync(`temporario\\${MD5(File)}`, base64Thumb);
+                    fs.writeFileSync(`temp\\${MD5(File)}`, base64Thumb);
                     resolv(base64Thumb);
                 } else if (['mp4'].includes(exten)) {
                     var ls;
                     if (process.platform == "win32") {
-                        ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temporario/${MD5(File)}.jpeg`]);
+                        ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
                     } else if (process.arch == "arm64") {
-                        ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temporario/${MD5(File)}.jpeg`]);
+                        ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
                     }
                     ls.stdout.on('data', (data) => {
                         //console.log(`stdout: ${data}`);
@@ -170,10 +171,10 @@ async function getThumbnail(File) {
                         try {
                             console.log("FFMPEG finalizado...");
                             //Criar thumbnail e deletar imagem grande
-                            let base64Thumb = await imgThumbnail(`./temporario/${MD5(File)}.jpeg`, imgOptions);
-                            fs.writeFileSync(`./temporario/${MD5(File)}`, base64Thumb);
+                            let base64Thumb = await imgThumbnail(`./temp/${MD5(File)}.jpeg`, imgOptions);
+                            fs.writeFileSync(`./temp/${MD5(File)}`, base64Thumb);
                             try {
-                                fs.unlinkSync(`./temporario/${MD5(File)}.jpeg`);
+                                fs.unlinkSync(`./temp/${MD5(File)}.jpeg`);
                             } catch (error) {
                                 console.log(error);
                             }
@@ -214,34 +215,25 @@ var sys = {
         return diaF + "/" + mesF + "/" + anoF;
     },
     clearTemporario: () => {
-        walkDir('./temporario/', function (filePath) {
-            fs.stat(filePath, function (err, stat) {
-                var now = new Date().getTime();
-                var endTime = new Date(stat.mtime).getTime() + 86400000; // 1days in miliseconds
-
-                if (err) { return console.error(err); }
-
-                if (now > endTime) {
-                    //console.log('DEL:', filePath);
-                    return fs.unlink(filePath, function (err) {
-                        if (err) return console.error(err);
-                    });
-                }
-            })
-        });
-
-        function walkDir(dir, callback) {
-            fs.readdirSync(dir).forEach(f => {
-                let dirPath = path.join(dir, f);
-                let isDirectory = fs.statSync(dirPath).isDirectory();
-                isDirectory ?
-                    walkDir(dirPath, callback) : callback(path.join(dir, f));
+        fs.readdir("./temp/", (err, files) => {
+            files.forEach(file => {
+                fs.stat("./temp/"+file, function (err, stat) {
+                    let endTime, now;
+                    if (err) {
+                        return console.error(err);
+                    }
+                    now = new Date().getTime();
+                    //console.log(stat.mtimeMs);
+                    endTime = new Date(stat.mtimeMs).getTime() + 18000000;
+                    if (now > endTime) {
+                        //console.log(file);
+                        fs.unlinkSync(`./temp/${file}`);
+                    }
+                });
             });
-        };
+        });
     }
 }
-
-sys.clearTemporario();
 
 p2pt.start();
 setInterval(() => {
