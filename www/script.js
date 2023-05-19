@@ -22,9 +22,7 @@ var mainVUE = Vue.createApp({
             MOUSE_menuLeft: 0,
             MOUSE_menuView: false,
 
-            PROGRESS_upDon: 0,
-            PROGRESS_upDonMax: 0,
-            PROGRESS_upDonTxt: ""
+            PROGRESS_netWork: 0,
         }
     },
     async mounted() {
@@ -60,6 +58,17 @@ var mainVUE = Vue.createApp({
 
     },
     methods: {
+        formatBytes: (bytes, decimals = 2)=>{
+            if (!+bytes) return '0 Bytes'
+        
+            const k = 1024
+            const dm = decimals < 0 ? 0 : decimals
+            const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+        
+            const i = Math.floor(Math.log(bytes) / Math.log(k))
+        
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+        },
         deletFilesSelect: async () => {
             await p2pt.send(mainVUE.peerHost, {
                 opc: "deletFiles",
@@ -138,8 +147,8 @@ var mainVUE = Vue.createApp({
             }
 
         },
-        typeFile: (fileName,forceFile=null) => {
-            if (fileName.includes(".") || (forceFile!=null && forceFile==false)) {
+        typeFile: (fileName, forceFile = null) => {
+            if (fileName.includes(".") || (forceFile != null && forceFile == false)) {
                 //Tem extenção
                 fileName = fileName.split(".");
                 fileName = fileName[fileName.length - 1];
@@ -204,11 +213,12 @@ var mainVUE = Vue.createApp({
                 mainVUE.MODAL_type = mainVUE.typeFile(mainVUE.MODAL_name)['type'];
                 mainVUE.MODAL_name = fileName.name;
                 aux['chunks'][MD5(`${mainVUE.peerDir}\\${fileName.name}`)] = new Array();
+
                 //Arquivo
                 await p2pt.send(mainVUE.peerHost, {
                     opc: "getFile",
                     data: `${mainVUE.peerDir}\\${fileName.name}`
-                })
+                });
             }
 
         },
@@ -235,6 +245,7 @@ var mainVUE = Vue.createApp({
             p2pt.on('data', (peer, data) => {
                 console.log('Data', peer);
                 console.log(data);
+                mainVUE.PROGRESS_netWork += data.length;
             })
 
             p2pt.on('msg', async (peer, msg) => {
@@ -294,6 +305,9 @@ var mainVUE = Vue.createApp({
                     p2pt.requestMorePeers();
                 }
             }, 5000);
+            setInterval(() => {
+                mainVUE.PROGRESS_netWork = 0;
+            }, 1000);
         }
     }
 }).mount('#mainAPP')
