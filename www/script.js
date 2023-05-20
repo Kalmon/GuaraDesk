@@ -10,23 +10,24 @@ var mainVUE = Vue.createApp({
             peerHost: null,
             peerFiles: new Array(),
             peerDir: "",
-            peerDirArr : [],
+            peerDirArr: [],
 
             //Login
             INPUT_password: localStorage.getItem("INPUT_password") == null ? "" : localStorage.getItem("INPUT_password"),
             INPUT_key: localStorage.getItem("INPUT_key") == null ? "" : localStorage.getItem("INPUT_key"),
 
             //Modal Video -IMG
-            MODAL_vidImg:false,
+            MODAL_vidImg: false,
             MODAL_name: "VAZIO",
             MODAL_base64: "",
             MODAL_type: "",
-            MODAL_src:"",
+            MODAL_src: "",
 
             MOUSE_filesSelect: new Array(),
             MOUSE_menuTop: 0,
             MOUSE_menuLeft: 0,
             MOUSE_menuView: false,
+            MOUSE_filesCopyMov: new Array(),
 
             PROGRESS_netWorkDown: 0,
             PROGRESS_netWorkUplo: 0,
@@ -65,7 +66,6 @@ var mainVUE = Vue.createApp({
             mainVUE.ls();
         });
 
-
         //Desativar video que esteja rodando
         $('#MODAL_vidImg').on('show.bs.modal', function (e) {
             mainVUE.MODAL_vidImg = true;
@@ -75,15 +75,59 @@ var mainVUE = Vue.createApp({
         });
     },
     methods: {
-        formatBytes: (bytes, decimals = 2)=>{
+        renameDirFile: () => {
+            bootbox.prompt({
+                title: 'Nome da pasta?',
+                inputType: 'text',
+                callback: async function (result) {
+                    if (result == null) {
+                        return null;
+                    }
+                    if (result.includes(".")) {
+                        alert("Não e permitido pontos.");
+                    } else {
+                        p2pt.send(mainVUE.peerHost, {
+                            opc: "filesCopMov",
+                            data: {
+                                files: mainVUE.MOUSE_filesSelect,
+                                dir: mainVUE.peerDir,
+                                type: false //Move == rename
+                            }
+                        })
+
+                        await sleep(500);
+                        mainVUE.ls();
+                    }
+                }
+            });
+        },
+        exit: () => {
+            p2pt.destroy();
+            mainVUE.screen = "key";
+        },
+        //FALSE = Move, TRUE= Copy
+        filesCopMov: async (type) => {
+            p2pt.send(mainVUE.peerHost, {
+                opc: "filesCopMov",
+                data: {
+                    files: mainVUE.MOUSE_filesCopyMov,
+                    dir: mainVUE.peerDir,
+                    type: type
+                }
+            })
+            mainVUE.MOUSE_filesCopyMov = [];
+            await sleep(500);
+            mainVUE.ls();
+        },
+        formatBytes: (bytes, decimals = 2) => {
             if (!+bytes) return '0 Bytes'
-        
+
             const k = 1024
             const dm = decimals < 0 ? 0 : decimals
             const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-        
+
             const i = Math.floor(Math.log(bytes) / Math.log(k))
-        
+
             return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
         },
         deletFilesSelect: async () => {
@@ -98,9 +142,11 @@ var mainVUE = Vue.createApp({
         mouseMenu: (event) => {
             event.preventDefault();
             //Right click
-            console.log(event);
             if (event.which == 3) {
-                console.log("show");
+                console.log(event.target);
+                if (!event.target.className.startsWith("menushow")) {
+                    mainVUE.MOUSE_filesSelect = [];
+                }
                 mainVUE.MOUSE_menuTop = (event.clientY) + "px";
                 mainVUE.MOUSE_menuLeft = (event.clientX) + "px";
                 mainVUE.MOUSE_menuView = true;
@@ -185,7 +231,7 @@ var mainVUE = Vue.createApp({
                         type: "pdf",
                         icon: "https://img.icons8.com/color/100/pdf.png"
                     };
-                }else if(['mp3'].includes(fileName.toLowerCase())){
+                } else if (['mp3'].includes(fileName.toLowerCase())) {
                     //Arquivo desconhecido
                     return {
                         type: "mp3",
@@ -246,9 +292,13 @@ var mainVUE = Vue.createApp({
 
         },
         connectP2PT: () => {
+            if (p2pt !== undefined) {
+                p2pt.destroy();
+            }
             p2pt = new P2PT([
                 "wss://tracker.openwebtorrent.com",
-                "wss://tracker.btorrent.xyz"
+                "wss://tracker.btorrent.xyz",
+                "wss://tracker.fastcast.nz"
 
             ], MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`));
             p2pt.on('trackerconnect', (tracker) => {
@@ -261,8 +311,8 @@ var mainVUE = Vue.createApp({
 
             p2pt.on('peerconnect', (peer) => {
                 console.log('PEER-CONNECT', peer)
-                localStorage.setItem("INPUT_key",mainVUE.INPUT_key);
-                localStorage.setItem("INPUT_password",mainVUE.INPUT_password);
+                localStorage.setItem("INPUT_key", mainVUE.INPUT_key);
+                localStorage.setItem("INPUT_password", mainVUE.INPUT_password);
             })
 
             //Uint8Array
@@ -281,14 +331,16 @@ var mainVUE = Vue.createApp({
                         if (msg['data']) {
                             mainVUE.peerHost = peer;
                             mainVUE.screen = "ok";
+                            mainVUE.peerDir = localStorage.getItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`);
                             await p2pt.send(peer, {
                                 opc: "ls",
-                                data: null
+                                data: mainVUE.peerDir
                             })
                         }
                     } else if (msg['opc'] == "ls") {
                         mainVUE.peerDir = msg['data']['dir'];
                         mainVUE.peerFiles = msg['data']['files'];
+                        localStorage.setItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`, mainVUE.peerDir);
                     } else if (msg['opc'] == "getFile") {
                         console.log("arquivos recebidos!");
                         let tyope = mainVUE.typeFile(

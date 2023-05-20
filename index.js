@@ -106,16 +106,39 @@ p2pt.on('msg', async (peer, msg) => {
             });
         } catch (error) {
             sys.errLog(error);
+            sys.log("Usuario desconectou durante envio...");
         }
-    } else if (msg['opc'] == 'dirUpdate') {
-        //Atualizar path
-        ls("dir", msg['data']);
+    } else if (msg['opc'] == 'filesCopMov') {
 
-    } else if (msg['opc'] == 'mv') {
-        //Renomear arquivo
+        for (let cont = 0, fileDest; cont < msg['data']['files'].length; cont++) {
+            fileDest = msg['data']['files'][cont].split("/");
+            //Is a folder? /media/files/
+            if(fileDest[fileDest.length - 1]==""){
+                fileDest = fileDest[fileDest.length - 2]; //Name file
+            }else{
+                fileDest = fileDest[fileDest.length - 1]; //Name file
+            }
+            
+            try {
+                //FALSE = Move, TRUE= Copy
+                if (msg['data']['type']) {
+                    fs.copyFile(msg['data']['files'][cont], `${msg['data']['dir']}${fileDest}`, (err) => {
+                        if (err) throw err;
+                        console.log('source.txt was copied to destination.txt');
+                    });
+                } else {
+                    fs.rename(msg['data']['files'][cont], `${msg['data']['dir']}${fileDest}`, function (err) {
+                        if (err) throw err
+                        console.log('Successfully renamed - AKA moved!')
+                    })
+                }
+            } catch (error) {
+                p2pt.send('logErr',error);
+            }
 
-    } else if (msg['opc'] == 'addFile') {
-        //Adicionar arquivo
+
+        };
+
 
     } else if (msg['opc'] == 'getThumb') {
         //obter icone do arquivo
@@ -196,11 +219,11 @@ async function getThumbnail(File) {
                         }
 
                     });
-                }else{
+                } else {
                     resolv(null);
                 }
             }
-        }else{
+        } else {
             resolv(null);
         }
     })
@@ -244,6 +267,9 @@ var sys = {
                 });
             });
         });
+    },
+    log: (data) => {
+        console.log(data);
     }
 }
 
