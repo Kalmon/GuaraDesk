@@ -136,13 +136,13 @@ var mainVUE = Vue.createApp({
             //Limpar seleção
             mainVUE.MOUSE_filesSelect = new Array();
 
-            if ((mainVUE.peerDir).split("\\").length <= 1) {
+            if ((mainVUE.peerDir).split("/").length <= 1) {
                 alert("Não e possivel voltar mais...");
             } else {
-                let temp = (mainVUE.peerDir).split("\\");
+                let temp = (mainVUE.peerDir).split("/");
                 temp.pop();
                 temp.pop();
-                mainVUE.peerDir = temp.join("\\");
+                mainVUE.peerDir = temp.join("/");
                 mainVUE.ls();
             }
 
@@ -187,9 +187,9 @@ var mainVUE = Vue.createApp({
             //Limpar seleção
             mainVUE.MOUSE_filesSelect = new Array();
 
-            if (mainVUE.peerDir[mainVUE.peerDir.length - 1] != "\\") {
-                console.log("Dir sem \\, corrigido!lll");
-                mainVUE.peerDir = mainVUE.peerDir + "\\";
+            if (mainVUE.peerDir[mainVUE.peerDir.length - 1] != "/") {
+                console.log("Dir sem /, corrigido!");
+                mainVUE.peerDir = mainVUE.peerDir + "/";
             }
             if (myDir) {
                 await p2pt.send(mainVUE.peerHost, {
@@ -212,12 +212,12 @@ var mainVUE = Vue.createApp({
             } else {
                 mainVUE.MODAL_type = mainVUE.typeFile(mainVUE.MODAL_name)['type'];
                 mainVUE.MODAL_name = fileName.name;
-                aux['chunks'][MD5(`${mainVUE.peerDir}\\${fileName.name}`)] = new Array();
+                aux['chunks'][MD5(`${mainVUE.peerDir}/${fileName.name}`)] = new Array();
 
                 //Arquivo
                 await p2pt.send(mainVUE.peerHost, {
                     opc: "getFile",
-                    data: `${mainVUE.peerDir}\\${fileName.name}`
+                    data: `${mainVUE.peerDir}/${fileName.name}`
                 });
             }
 
@@ -268,7 +268,7 @@ var mainVUE = Vue.createApp({
                     } else if (msg['opc'] == "getFile") {
                         console.log("arquivos recebidos!");
                         let tyope = mainVUE.typeFile(
-                            (msg['data']['name']).split("\\")[(msg['data']['name']).split("\\").length - 1]
+                            (msg['data']['name']).split("/")[(msg['data']['name']).split("/").length - 1]
                         );
                         console.log("Tipo arquivo: " + tyope.type);
                         $("#MODAL_vidImg").modal("show")

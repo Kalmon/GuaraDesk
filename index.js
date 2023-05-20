@@ -58,15 +58,15 @@ p2pt.on('msg', async (peer, msg) => {
         sys.clearTemporario();
         //Lista diretorio
         if (msg['data'] == null) {
-            msg['data'] = __dirname + "\\";
+            msg['data'] = __dirname + "/";
         }
         let files = fs.readdirSync(msg['data']),
             filesSize = new Array();
         for (let cont = 0; cont < files.length; cont++) {
             filesSize.push({
                 name: files[cont],
-                isDir: fs.lstatSync(msg['data'] + '\\' + files[cont]).isDirectory(),
-                size: fs.lstatSync(msg['data'] + '\\' + files[cont]).isDirectory() ? 0 : fs.statSync(msg['data'] + '\\' + files[cont]).size,
+                isDir: fs.lstatSync(msg['data'] + '/' + files[cont]).isDirectory(),
+                size: fs.lstatSync(msg['data'] + '/' + files[cont]).isDirectory() ? 0 : fs.statSync(msg['data'] + '/' + files[cont]).size,
                 thumbnail: await getThumbnail(`${msg['data']}${files[cont]}`)
             });
         }
@@ -142,13 +142,13 @@ async function sendChunk(peer, base64) {
 async function getThumbnail(File) {
     return await new Promise(async (resolv, reject) => {
         if (!fs.lstatSync(File).isDirectory()) {
-            if (fs.existsSync(`temp\\${MD5(File)}`)) {
-                resolv(fs.readFileSync(`temp\\${MD5(File)}`, { encoding: 'utf8' }));
+            if (fs.existsSync(`temp/${MD5(File)}`)) {
+                resolv(fs.readFileSync(`temp/${MD5(File)}`, { encoding: 'utf8' }));
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
                 if (['png', 'jpeg', 'jpg'].includes(exten)) {
                     let base64Thumb = await imgThumbnail(File, imgOptions);
-                    fs.writeFileSync(`temp\\${MD5(File)}`, base64Thumb);
+                    fs.writeFileSync(`temp/${MD5(File)}`, base64Thumb);
                     resolv(base64Thumb);
                 } else if (['mp4'].includes(exten)) {
                     var ls;
@@ -190,7 +190,6 @@ async function getThumbnail(File) {
 
             }
         }
-        resolv(null);
     })
 
 }
