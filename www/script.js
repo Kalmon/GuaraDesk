@@ -5,35 +5,42 @@ var mainVUE = Vue.createApp({
     data() {
         return {
             screen: 'key',
-            INPUT_key: "",
             peerConnect: null,
             currentDIR: "",
             peerHost: null,
             peerFiles: new Array(),
             peerDir: "",
+            peerDirArr : [],
+
+            //Login
+            INPUT_password: localStorage.getItem("INPUT_password") == null ? "" : localStorage.getItem("INPUT_password"),
+            INPUT_key: localStorage.getItem("INPUT_key") == null ? "" : localStorage.getItem("INPUT_key"),
 
             //Modal Video -IMG
+            MODAL_vidImg:false,
             MODAL_name: "VAZIO",
             MODAL_base64: "",
             MODAL_type: "",
+            MODAL_src:"",
 
             MOUSE_filesSelect: new Array(),
             MOUSE_menuTop: 0,
             MOUSE_menuLeft: 0,
             MOUSE_menuView: false,
 
-            PROGRESS_netWork: 0,
+            PROGRESS_netWorkDown: 0,
+            PROGRESS_netWorkUplo: 0,
+            PROGRESS_netWorkUploMax: 0,
         }
     },
     async mounted() {
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-
         document.querySelector("#INPUT_files").addEventListener("change", async (ev) => {
             const files = ev.target.files;
             if (!files || !files[0]) return alert('File upload not supported');
             let chucksFiles = new Array();
             console.log(files);
+            mainVUE.PROGRESS_netWorkUploMax = files.length;
+            mainVUE.PROGRESS_netWorkUplo = 0;
             for (let cont = 0; cont < files.length; cont++) {
                 chucksFiles.push({
                     name: files[cont].name,
@@ -51,11 +58,21 @@ var mainVUE = Vue.createApp({
                         base64: chucksFiles[cont]['chucks']
                     }
                 })
+                mainVUE.PROGRESS_netWorkUplo = cont;
             }
+            mainVUE.PROGRESS_netWorkUplo++;
 
             mainVUE.ls();
         });
 
+
+        //Desativar video que esteja rodando
+        $('#MODAL_vidImg').on('show.bs.modal', function (e) {
+            mainVUE.MODAL_vidImg = true;
+        });
+        $('#MODAL_vidImg').on('hide.bs.modal', function (e) {
+            mainVUE.MODAL_vidImg = false;
+        });
     },
     methods: {
         formatBytes: (bytes, decimals = 2)=>{
@@ -168,6 +185,12 @@ var mainVUE = Vue.createApp({
                         type: "pdf",
                         icon: "https://img.icons8.com/color/100/pdf.png"
                     };
+                }else if(['mp3'].includes(fileName.toLowerCase())){
+                    //Arquivo desconhecido
+                    return {
+                        type: "mp3",
+                        icon: "https://img.icons8.com/external-bearicons-flat-bearicons/100/external-MP3-file-extension-bearicons-flat-bearicons.png"
+                    };
                 } else {
                     //Arquivo desconhecido
                     return {
@@ -227,7 +250,7 @@ var mainVUE = Vue.createApp({
                 "wss://tracker.openwebtorrent.com",
                 "wss://tracker.btorrent.xyz"
 
-            ], "guara-hos-files");
+            ], MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`));
             p2pt.on('trackerconnect', (tracker) => {
                 //console.log('TRACKET-CONNECT', tracker)
             })
@@ -238,14 +261,15 @@ var mainVUE = Vue.createApp({
 
             p2pt.on('peerconnect', (peer) => {
                 console.log('PEER-CONNECT', peer)
-
+                localStorage.setItem("INPUT_key",mainVUE.INPUT_key);
+                localStorage.setItem("INPUT_password",mainVUE.INPUT_password);
             })
 
             //Uint8Array
             p2pt.on('data', (peer, data) => {
                 console.log('Data', peer);
                 console.log(data);
-                mainVUE.PROGRESS_netWork += data.length;
+                mainVUE.PROGRESS_netWorkDown += data.length;
             })
 
             p2pt.on('msg', async (peer, msg) => {
@@ -270,25 +294,19 @@ var mainVUE = Vue.createApp({
                         let tyope = mainVUE.typeFile(
                             (msg['data']['name']).split("/")[(msg['data']['name']).split("/").length - 1]
                         );
-                        console.log("Tipo arquivo: " + tyope.type);
-                        $("#MODAL_vidImg").modal("show")
                         //!FALTA convert buffer em base64
                         if (tyope.type == "video") {
-                            console.log("video....");
-                            $("#MODAL_video").attr("src",
-                                `data:video/mp4;base64, ${msg['data']['base64']}`
-                            )
+                            mainVUE.MODAL_src = `data:video/mp4;base64, ${msg['data']['base64']}`;
+                            $("#MODAL_vidImg").modal("show")
                         } else if (tyope.type == "img") {
-                            console.log("img....");
-                            $("#MODAL_img").attr("src",
-                                `data:image/png;base64, ${msg['data']['base64']}`
-                            )
-                            //window.URL.createObjectURL(new Blob(msg['data']))
+                            mainVUE.MODAL_src = `data:image/png;base64, ${msg['data']['base64']}`;
+                            $("#MODAL_vidImg").modal("show")
                         } else if (tyope.type == "pdf") {
-                            $("#MODAL_pdf").attr("src",
-                                `data:application/pdf;base64, ${msg['data']['base64']}`
-                            )
-                            //window.URL.createObjectURL(new Blob(msg['data']))
+                            mainVUE.MODAL_src = `data:application/pdf;base64, ${msg['data']['base64']}`;
+                            $("#MODAL_vidImg").modal("show")
+                        } else if (tyope.type == "mp3") {
+                            mainVUE.MODAL_src = `data:audio/mp3;base64, ${msg['data']['base64']}`;
+                            $("#MODAL_vidImg").modal("show")
                         } else {
 
                         }
@@ -299,14 +317,14 @@ var mainVUE = Vue.createApp({
             });
 
             console.log('P2PT started. My peer id : ' + p2pt._peerId)
-            p2pt.start()
+            p2pt.start();
             setInterval(() => {
                 if (mainVUE.peerHost == null) {
                     p2pt.requestMorePeers();
                 }
             }, 5000);
             setInterval(() => {
-                mainVUE.PROGRESS_netWork = 0;
+                mainVUE.PROGRESS_netWorkDown = 0;
             }, 1000);
         }
     }

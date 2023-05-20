@@ -23,6 +23,8 @@
         <div v-if="screen=='key'" class="d-flex justify-content-md-center align-items-center vh-100">
             <div class="input-group mb-3 w-50">
                 <input type="text" class="form-control" v-model="INPUT_key">
+                <span class="input-group-text" id="basic-addon1">#</span>
+                <input type="text" class="form-control" v-model="INPUT_password">
                 <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
             </div>
         </div>
@@ -66,8 +68,12 @@
                             </li>
                             <li class="nav-item ms-auto">
                                 <a class="nav-link border rounded-2 me-3 ms-3">
-                                    <i class="fa-solid fa-gauge-high fa-xl me-3"></i>
-                                    <b class="me-2">{{formatBytes(PROGRESS_netWork)}}</b>
+                                    <i class="fa-solid fa-cloud-arrow-down me-1" title="Download"></i>
+                                    <b class="me-2" title="Download">{{formatBytes(PROGRESS_netWorkDown)}}</b>
+                                    <template v-if="PROGRESS_netWorkUploMax != PROGRESS_netWorkUplo">
+                                        <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
+                                        <b class="me-2" title="Upload">{{PROGRESS_netWorkUplo}} of {{PROGRESS_netWorkUploMax}}</b>
+                                    </template>                                    
                                 </a>
                             </li>
                         </ul>
@@ -94,8 +100,7 @@
                         </div>
 
 
-                        <p class="text-truncate" data-bs-toggle="tooltip" data-bs-placement="bottom"
-                            :data-bs-title="item.name">{{item.name}}</p>
+                        <p class="text-truncate" :title="item.name">{{item.name}}</p>
                     </div>
                 </div>
             </div>
@@ -139,14 +144,16 @@
                         <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_name}}</h1>
                         <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="max-vh-65">
-                        <img v-if="typeFile(MODAL_name)['type']=='img'" class="w-100" id="MODAL_img" src="">
-                        <video v-else-if="typeFile(MODAL_name)['type']=='video'" class="max-vh-50 w-100" src=""
+                    <div v-if="MODAL_vidImg" class="max-vh-65">
+                        <img v-if="typeFile(MODAL_name)['type']=='img'" class="w-100" id="MODAL_img" :src="MODAL_src">
+                        <video v-else-if="typeFile(MODAL_name)['type']=='video'" class="max-vh-50 w-100" :src="MODAL_src"
                             id="MODAL_video" width="100%" controls>
 
                         </video>
                         <embed v-else-if="typeFile(MODAL_name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
-                            type="application/pdf">
+                            type="application/pdf" :src="MODAL_src">
+                        <audio v-else-if="typeFile(MODAL_name)['type']=='mp3'" id="MODAL_mp3" class="w-100" :src="MODAL_src" controls>
+                        </audio>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
