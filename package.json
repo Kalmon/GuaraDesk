@@ -3,6 +3,6 @@
     "image-thumbnail": "^1.0.15",
     "local-storage": "^2.0.0",
     "md5": "^2.3.0",
-    "p2pt": "github:Kalmon/P2P-WebTorrent"
+    "p2pt": "github:Kalmon/tiny-p2pt"
   }
 }
