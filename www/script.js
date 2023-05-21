@@ -28,10 +28,18 @@ var mainVUE = Vue.createApp({
             MOUSE_menuLeft: 0,
             MOUSE_menuView: false,
             MOUSE_filesCopyMov: new Array(),
+            MOUSE_multDownload: new Array(),
 
             PROGRESS_netWorkDown: 0,
             PROGRESS_netWorkUplo: 0,
             PROGRESS_netWorkUploMax: 0,
+
+            ALERTS: {
+                rand001: {
+                    type: "success",
+                    msg: "Wilticome a GuaraDesk"
+                }
+            }
         }
     },
     async mounted() {
@@ -74,30 +82,65 @@ var mainVUE = Vue.createApp({
             mainVUE.MODAL_vidImg = false;
         });
     },
+    computed: {
+        // a computed getter
+
+    },
     methods: {
+        destroyAlert: (idAlert, inst = false) => {
+            if (inst) {
+                delete mainVUE.ALERTS[idAlert];
+            } else {
+                setTimeout(() => {
+                    delete mainVUE.ALERTS[idAlert]
+                }, 5000)
+            }
+
+        },
+        zipFD: () => {
+            bootbox.prompt({
+                title: 'Name of zip?',
+                inputType: 'text',
+                value: (mainVUE.MOUSE_filesSelect[0]).split("/")[(mainVUE.MOUSE_filesSelect[0]).split("/").length - 1],
+                callback: async function (result) {
+                    if (result == null || result.length <= 0) {
+                        return null;
+                    }
+                    p2pt.send(mainVUE.peerHost, {
+                        opc: "zipFD",
+                        data: {
+                            files: mainVUE.MOUSE_filesSelect,
+                            dir: mainVUE.peerDir,
+                            zip7name: result
+                        }
+                    })
+
+                    await sleep(500);
+                    mainVUE.ls();
+                }
+            });
+        },
         renameDirFile: () => {
             bootbox.prompt({
                 title: 'Nome da pasta?',
                 inputType: 'text',
+                value: (mainVUE.MOUSE_filesSelect[0]).split("/")[(mainVUE.MOUSE_filesSelect[0]).split("/").length - 1],
                 callback: async function (result) {
-                    if (result == null) {
+                    if (result == null || (mainVUE.MOUSE_filesSelect[0]).split("/")[(mainVUE.MOUSE_filesSelect[0]).split("/").length - 1] == result) {
                         return null;
                     }
-                    if (result.includes(".")) {
-                        alert("Não e permitido pontos.");
-                    } else {
-                        p2pt.send(mainVUE.peerHost, {
-                            opc: "filesCopMov",
-                            data: {
-                                files: mainVUE.MOUSE_filesSelect,
-                                dir: mainVUE.peerDir,
-                                type: false //Move == rename
-                            }
-                        })
+                    p2pt.send(mainVUE.peerHost, {
+                        opc: "filesCopMov",
+                        data: {
+                            files: mainVUE.MOUSE_filesSelect,
+                            dir: mainVUE.peerDir,
+                            rename: result,
+                            type: false //Move == rename
+                        }
+                    })
 
-                        await sleep(500);
-                        mainVUE.ls();
-                    }
+                    await sleep(500);
+                    mainVUE.ls();
                 }
             });
         },
@@ -324,45 +367,41 @@ var mainVUE = Vue.createApp({
 
             p2pt.on('msg', async (peer, msg) => {
                 console.log(msg);
-                if (msg['type'] == "Buffer") {
-                    temp.push(msg.data);
-                } else {
-                    if (msg['opc'] == "host") {
-                        if (msg['data']) {
-                            mainVUE.peerHost = peer;
-                            mainVUE.screen = "ok";
-                            mainVUE.peerDir = localStorage.getItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`);
-                            await p2pt.send(peer, {
-                                opc: "ls",
-                                data: mainVUE.peerDir
-                            })
-                        }
-                    } else if (msg['opc'] == "ls") {
-                        mainVUE.peerDir = msg['data']['dir'];
-                        mainVUE.peerFiles = msg['data']['files'];
-                        localStorage.setItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`, mainVUE.peerDir);
-                    } else if (msg['opc'] == "getFile") {
-                        console.log("arquivos recebidos!");
-                        let tyope = mainVUE.typeFile(
-                            (msg['data']['name']).split("/")[(msg['data']['name']).split("/").length - 1]
-                        );
-                        //!FALTA convert buffer em base64
-                        if (tyope.type == "video") {
-                            mainVUE.MODAL_src = `data:video/mp4;base64, ${msg['data']['base64']}`;
-                            $("#MODAL_vidImg").modal("show")
-                        } else if (tyope.type == "img") {
-                            mainVUE.MODAL_src = `data:image/png;base64, ${msg['data']['base64']}`;
-                            $("#MODAL_vidImg").modal("show")
-                        } else if (tyope.type == "pdf") {
-                            mainVUE.MODAL_src = `data:application/pdf;base64, ${msg['data']['base64']}`;
-                            $("#MODAL_vidImg").modal("show")
-                        } else if (tyope.type == "mp3") {
-                            mainVUE.MODAL_src = `data:audio/mp3;base64, ${msg['data']['base64']}`;
-                            $("#MODAL_vidImg").modal("show")
-                        } else {
-
-                        }
+                if (msg['opc'] == "host") {
+                    if (msg['data']) {
+                        mainVUE.peerHost = peer;
+                        mainVUE.screen = "ok";
+                        mainVUE.peerDir = localStorage.getItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`);
+                        await p2pt.send(peer, {
+                            opc: "ls",
+                            data: mainVUE.peerDir
+                        })
                     }
+                } else if (msg['opc'] == "ls") {
+                    mainVUE.peerDir = msg['data']['dir'];
+                    mainVUE.peerFiles = msg['data']['files'];
+                    localStorage.setItem(`peerDir_${MD5(`${mainVUE.INPUT_key}#${mainVUE.INPUT_password}`)}`, mainVUE.peerDir);
+                } else if (msg['opc'] == "getFile") {
+                    console.log("arquivos recebidos!");
+                    let tyope = mainVUE.typeFile(
+                        (msg['data']['name']).split("/")[(msg['data']['name']).split("/").length - 1]
+                    );
+                    //!FALTA convert buffer em base64
+                    if (tyope.type == "video") {
+                        mainVUE.MODAL_src = `data:video/mp4;base64, ${msg['data']['base64']}`;
+                    } else if (tyope.type == "img") {
+                        mainVUE.MODAL_src = `data:image/png;base64, ${msg['data']['base64']}`;
+                    } else if (tyope.type == "pdf") {
+                        mainVUE.MODAL_src = `data:application/pdf;base64, ${msg['data']['base64']}`;
+                    } else if (tyope.type == "mp3") {
+                        mainVUE.MODAL_src = `data:audio/mp3;base64, ${msg['data']['base64']}`;
+                    } else {
+                        mainVUE.MODAL_src = `data:text/plain;base64, ${msg['data']['base64']}`;
+                    }
+                    $("#MODAL_vidImg").modal("show")
+                } else if (msg['opc'] == "alert") {
+                    let id = randMinMax(1,999999)+"_alert";
+                    mainVUE.ALERTS[id] = msg['data'];
                 }
                 //Evitar promissas
                 return peer.respond('Bye');
@@ -381,6 +420,11 @@ var mainVUE = Vue.createApp({
         }
     }
 }).mount('#mainAPP')
+
+
+function randMinMax(min, max) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
 
 async function readFile(file) {
     return new Promise((resolv, reject) => {

@@ -122,11 +122,11 @@
                 <div class="item" @click="MOUSE_filesCopyMov=MOUSE_filesSelect;MOUSE_filesSelect=[];">
                     <i class="fa-solid fa-copy"></i> Copy/Move
                 </div>
+                <div class="item" @click="zipFD">
+                    <i class="fa-solid fa-file-zipper"></i> Zip
+                </div>
                 <div class="item" @click="deletFilesSelect">
                     <i class="fa-solid fa-trash"></i> Delet
-                </div>
-                <div class="item" @click="MOUSE_filesSelect=[]">
-                    <i class="fa-solid fa-xmark"></i> Deslect
                 </div>
             </template>
             <template v-if="MOUSE_filesCopyMov.length>0">
@@ -176,13 +176,19 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary col">Download</button>
+                        <a :href="MODAL_src" :download="MODAL_name" class="btn btn-primary col">Download</a>
                     </div>
                 </div>
             </div>
         </div>
         <div class="hide">
             <input id="INPUT_files" type="file" multiple>
+        </div>
+        <div v-if="Object.keys(ALERTS).length>0" class="fixed-top" style="left: auto;">
+            <div v-for="(item, index) in Object.keys(ALERTS)" :time="destroyAlert(item)" :class="`alert m-1 alert-${ALERTS[item].type} alert-dismissible fade show`" role="alert">
+                {{ALERTS[item].msg}}
+                <button @click="destroyAlert(item,true)" type="button" class="btn-close" aria-label="Close"></button>
+            </div>
         </div>
     </div>
 

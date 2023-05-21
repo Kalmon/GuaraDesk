@@ -5,6 +5,8 @@ const imgThumbnail = require('image-thumbnail');
 let imgOptions = { percentage: 25, responseType: 'base64' }
 const { spawn } = require('node:child_process');
 var path = require('path');
+var EasyZip = require('easy-zip').EasyZip;
+
 
 
 var aux = new Object();
@@ -91,6 +93,14 @@ p2pt.on('msg', async (peer, msg) => {
         //Criar diretorio
         if (!fs.existsSync(`${msg['data']['dir']}${msg['data']['newFolder']}`)) {
             fs.mkdirSync(`${msg['data']['dir']}${msg['data']['newFolder']}`);
+        }else{
+            p2pt.send(peer, {
+                opc: "alert",
+                data: {
+                    type:"warning",
+                    msg: "Folder already exists with that name!"
+                }
+            });
         }
 
     } else if (msg['opc'] == 'getFile') {
@@ -113,12 +123,12 @@ p2pt.on('msg', async (peer, msg) => {
         for (let cont = 0, fileDest; cont < msg['data']['files'].length; cont++) {
             fileDest = msg['data']['files'][cont].split("/");
             //Is a folder? /media/files/
-            if(fileDest[fileDest.length - 1]==""){
-                fileDest = fileDest[fileDest.length - 2]; //Name file
-            }else{
+            if (fileDest[fileDest.length - 1] == "") {
+                fileDest = fileDest[fileDest.length - 2]; //Name dir
+            } else {
                 fileDest = fileDest[fileDest.length - 1]; //Name file
             }
-            
+
             try {
                 //FALSE = Move, TRUE= Copy
                 if (msg['data']['type']) {
@@ -127,13 +137,20 @@ p2pt.on('msg', async (peer, msg) => {
                         console.log('source.txt was copied to destination.txt');
                     });
                 } else {
-                    fs.rename(msg['data']['files'][cont], `${msg['data']['dir']}${fileDest}`, function (err) {
+                    //If msg['data']['rename']==null? Então vamos mover : renomar
+                    fs.rename(msg['data']['files'][cont], `${msg['data']['dir']}${msg['data']['rename'] == undefined ? fileDest : msg['data']['rename']}`, function (err) {
                         if (err) throw err
                         console.log('Successfully renamed - AKA moved!')
                     })
                 }
             } catch (error) {
-                p2pt.send('logErr',error);
+                p2pt.send(peer, {
+                    opc: "alert",
+                    data: {
+                        type:"warning",
+                        msg: error
+                    }
+                });
             }
 
 
@@ -161,6 +178,45 @@ p2pt.on('msg', async (peer, msg) => {
                 fs.unlinkSync(msg['data'][cont]);
             }
         }
+    } else if (msg['opc'] == 'zipFD') {
+        var zip7;
+        if (process.platform == "win32") {
+            zip7 = spawn('./bin/7zip/7za.exe', ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
+        } else if (process.arch == "arm64") {
+            zip7 = spawn('./bin/7zip/7za-arm64', ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
+        }
+        zip7.stdout.on('data', (data) => {
+            //console.log(`stdout: ${data}`);
+        });
+
+        zip7.stderr.on('data', (dataerr) => {
+            //console.error(`stderr: ${data}`);
+            //resolv(null);
+            //sys.errLog(data);
+            p2pt.send(peer, {
+                opc: "alert",
+                data: {
+                    type:"warning",
+                    msg: dataerr
+                }
+            });
+        });
+
+        zip7.on('close', async (code) => {
+            try {
+                console.log("7za finalizado...");
+                p2pt.send(peer, {
+                    opc: "alert",
+                    data: {
+                        type:"success",
+                        msg: "Successfully compressed file!"
+                    }
+                });
+            } catch (error) {
+                sys.errLog(error);
+            }
+
+        });
     }
 
     //Evitar promissas

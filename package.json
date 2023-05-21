@@ -1,7 +1,8 @@
 {
   "dependencies": {
+    "easy-zip": "^0.0.4",
+    "glob": "^10.2.5",
     "image-thumbnail": "^1.0.15",
-
     "p2pt": "github:Kalmon/tiny-p2pt"
   }
 }
