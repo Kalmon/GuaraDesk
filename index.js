@@ -4,9 +4,6 @@ const process = require('process');
 const imgThumbnail = require('image-thumbnail');
 let imgOptions = { percentage: 25, responseType: 'base64' }
 const { spawn } = require('node:child_process');
-var path = require('path');
-var EasyZip = require('easy-zip').EasyZip;
-
 
 
 var aux = new Object();
