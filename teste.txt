@@ -1,0 +1,1 @@
+./bin/ffmpeg-win64/bin/ffmpeg.exe -y -i F:/Projetos/GuaraDesk/myUploads/kAWAI/shitpostvhs-20230515_203250-121294972_260047329771889_2031778355090563818_n.mp4 -vf "crop=99:186:55:56" F:/Projetos/GuaraDesk/myUploads/kAWAI/resiz_shitpostvhs-20230515_203250-121294972_260047329771889_2031778355090563818_n.mp4

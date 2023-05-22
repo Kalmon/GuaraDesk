@@ -1,6 +1,7 @@
 var p2pt, temp = new Array();
 var aux = new Object();
 aux['chunks'] = new Object();
+aux['cropper'] = null;
 var mainVUE = Vue.createApp({
     data() {
         return {
@@ -44,7 +45,11 @@ var mainVUE = Vue.createApp({
 
             //CMD
             CMD_input: "",
-            CMD_out:""
+            CMD_out: "",
+
+            //Modal resize video
+            MODAL_VidEditImg_SRC: "",
+            MODAL_VidEditImg_Title: ""
         }
     },
     async mounted() {
@@ -86,12 +91,40 @@ var mainVUE = Vue.createApp({
         $('#MODAL_vidImg').on('hide.bs.modal', function (e) {
             mainVUE.MODAL_vidImg = false;
         });
+
+        //Editor de video
+        $('#MODAL_VidEdit').on('hide.bs.modal', function (e) {
+            aux['cropper'].destroy();
+        });
+
     },
     computed: {
         // a computed getter
 
     },
     methods: {
+        cropVideo: () => {
+            p2pt.send(mainVUE.peerHost, {
+                opc: "cropVideo",
+                data: {
+                    file: mainVUE.MOUSE_filesSelect[0],
+                    size: {
+                        x: parseInt(aux['cropper'].getData()['x']),
+                        y: parseInt(aux['cropper'].getData()['y']),
+                        w: parseInt(aux['cropper'].getData()['width']),
+                        h: parseInt(aux['cropper'].getData()['height'])
+                    }
+                }
+            })
+        },
+        videoEditResize: () => {
+            p2pt.send(mainVUE.peerHost, {
+                opc: "getImgVideoEdit",
+                data: {
+                    file: mainVUE.MOUSE_filesSelect[0]
+                }
+            })
+        },
         destroyAlert: (idAlert, inst = false) => {
             if (inst) {
                 delete mainVUE.ALERTS[idAlert];
@@ -404,8 +437,23 @@ var mainVUE = Vue.createApp({
                     }
                     $("#MODAL_vidImg").modal("show")
                 } else if (msg['opc'] == "alert") {
-                    let id = randMinMax(1,999999)+"_alert";
+                    let id = randMinMax(1, 999999) + "_alert";
                     mainVUE.ALERTS[id] = msg['data'];
+                } else if (msg['opc'] == "getImgVideoEdit") {
+                    console.log("chegou aqui");
+                    mainVUE.MODAL_VidEditImg_Title = msg['data']['file'].split("/")[msg['data']['file'].split("/").length - 1];
+                    mainVUE.MODAL_VidEditImg_SRC = `data:image/jpg;base64, ${msg['data']['base64']}`;
+                    $("#MODAL_VidEdit").modal("show");
+
+                    await sleep(1000);
+
+                    aux['cropper'] = new Cropper(document.getElementById('MODAL_VidEditImg'), {
+                        viewMode: 1,
+                        crop(event) {
+                            console.log(`X: ${event.detail.x} Y: $${event.detail.y}`);
+                            console.log(`W: ${event.detail.width} H: $${event.detail.height}`);
+                        },
+                    });
                 }
                 //Evitar promissas
                 return peer.respond('Bye');

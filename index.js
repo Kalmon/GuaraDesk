@@ -90,11 +90,11 @@ p2pt.on('msg', async (peer, msg) => {
         //Criar diretorio
         if (!fs.existsSync(`${msg['data']['dir']}${msg['data']['newFolder']}`)) {
             fs.mkdirSync(`${msg['data']['dir']}${msg['data']['newFolder']}`);
-        }else{
+        } else {
             p2pt.send(peer, {
                 opc: "alert",
                 data: {
-                    type:"warning",
+                    type: "warning",
                     msg: "Folder already exists with that name!"
                 }
             });
@@ -144,7 +144,7 @@ p2pt.on('msg', async (peer, msg) => {
                 p2pt.send(peer, {
                     opc: "alert",
                     data: {
-                        type:"warning",
+                        type: "warning",
                         msg: error
                     }
                 });
@@ -154,8 +154,15 @@ p2pt.on('msg', async (peer, msg) => {
         };
 
 
-    } else if (msg['opc'] == 'getThumb') {
+    } else if (msg['opc'] == 'getImgVideoEdit') {
         //obter icone do arquivo
+        p2pt.send(peer, {
+            opc: "getImgVideoEdit",
+            data: {
+                file: msg['data']['file'],
+                base64: await getThumbnail(msg['data']['file'], true)
+            }
+        });
 
     } else if (msg['opc'] == 'writeFile') {
         //obter icone do arquivo
@@ -193,7 +200,7 @@ p2pt.on('msg', async (peer, msg) => {
             p2pt.send(peer, {
                 opc: "alert",
                 data: {
-                    type:"warning",
+                    type: "warning",
                     msg: dataerr
                 }
             });
@@ -205,7 +212,7 @@ p2pt.on('msg', async (peer, msg) => {
                 p2pt.send(peer, {
                     opc: "alert",
                     data: {
-                        type:"success",
+                        type: "success",
                         msg: "Successfully compressed file!"
                     }
                 });
@@ -214,6 +221,29 @@ p2pt.on('msg', async (peer, msg) => {
             }
 
         });
+    } else if (msg['opc'] == 'cropVideo') {
+        //obter icone do arquivo
+        cropVideo(msg['data']['file'], msg['data']['size']).then(res => {
+            if (res.res) {
+                p2pt.send(peer, {
+                    opc: "alert",
+                    data: {
+                        type: "success",
+                        msg: "Your video has been resized!"
+                    }
+                });
+            } else {
+                p2pt.send(peer, {
+                    opc: "alert",
+                    data: {
+                        type: "warning",
+                        msg: res.msg
+                    }
+                });
+            }
+        });
+
+
     }
 
     //Evitar promissas
@@ -224,11 +254,38 @@ p2pt.on('msg', async (peer, msg) => {
 async function sendChunk(peer, base64) {
 
 }
+async function cropVideo(File, data) {
+    console.log(data);
+    return new Promise((resol, reject) => {
+        let output = File.split("/");
+        output[output.length - 1] = "resiz_" + output[output.length - 1];
+        output = output.join("/");
+        if (process.platform == "win32") {
+            ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-y','-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
+        } else if (process.arch == "arm64") {
+            ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-y','-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
+        }
+        ls.stdout.on('data', (data) => {
+            //console.log(`stdout: ${data}`);
+        });
 
-async function getThumbnail(File) {
+        ls.stderr.on('data', (data) => {
+            //console.error(`stderr: ${data}`);
+            //resolv(null);
+            //sys.errLog(data);
+            //resol({ res: true, msg: data });
+        });
+
+        ls.on('close', async (code) => {
+            resol({ res: true });
+        });
+    });
+}
+
+async function getThumbnail(File, qualityFull = false) {
     return await new Promise(async (resolv, reject) => {
         if (!fs.lstatSync(File).isDirectory()) {
-            if (fs.existsSync(`temp/${MD5(File)}`)) {
+            if (fs.existsSync(`temp/${MD5(File)}`) && qualityFull==false) {
                 resolv(fs.readFileSync(`temp/${MD5(File)}`, { encoding: 'utf8' }));
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
@@ -239,9 +296,9 @@ async function getThumbnail(File) {
                 } else if (['mp4'].includes(exten)) {
                     var ls;
                     if (process.platform == "win32") {
-                        ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
+                        ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-y','-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
                     } else if (process.arch == "arm64") {
-                        ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
+                        ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-y','-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
                     }
                     ls.stdout.on('data', (data) => {
                         //console.log(`stdout: ${data}`);
@@ -252,25 +309,29 @@ async function getThumbnail(File) {
                         //resolv(null);
                         //sys.errLog(data);
                     });
-
                     ls.on('close', async (code) => {
                         try {
                             console.log("FFMPEG finalizado...");
-                            //Criar thumbnail e deletar imagem grande
-                            let base64Thumb = await imgThumbnail(`./temp/${MD5(File)}.jpeg`, imgOptions);
-                            fs.writeFileSync(`./temp/${MD5(File)}`, base64Thumb);
+                            let base64Thumb;
+                            //Image video full
+                            if (qualityFull) {
+                                base64Thumb = fs.readFileSync(`./temp/${MD5(File)}.jpeg`, { encoding: "base64" });
+                                
+                            } else {
+                                //Criar thumbnail e deletar imagem grande
+                                base64Thumb = await imgThumbnail(`./temp/${MD5(File)}.jpeg`, imgOptions);
+                                fs.writeFileSync(`./temp/${MD5(File)}`, base64Thumb);
+                            }
                             try {
                                 fs.unlinkSync(`./temp/${MD5(File)}.jpeg`);
                             } catch (error) {
                                 console.log(error);
                             }
-                            console.log(`child process exited with code ${code}`);
                             resolv(base64Thumb);
                         } catch (error) {
                             sys.errLog(error);
                             resolv(null);
                         }
-
                     });
                 } else {
                     resolv(null);

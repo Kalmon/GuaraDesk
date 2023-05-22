@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://cdn.jsdelivr.net/gh/fengyuanchen/cropperjs@1.5.13/dist/cropper.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -118,6 +119,12 @@
             <div class="item" v-if="MOUSE_filesSelect.length==1" @click="renameDirFile">
                 <i class="fa-solid fa-pen-to-square"></i> Rename
             </div>
+            <template v-if="MOUSE_filesSelect.length==1 && typeFile(MOUSE_filesSelect[0])['type']=='video'">
+                <div class="item" @click="videoEditResize">
+                    <i class="fa-solid fa-pen-to-square"></i> Resize
+                </div>
+            </template>
+
             <template v-if="MOUSE_filesSelect.length>0">
                 <div class="item" @click="MOUSE_filesCopyMov=MOUSE_filesSelect;MOUSE_filesSelect=[];">
                     <i class="fa-solid fa-copy"></i> Copy/Move
@@ -153,17 +160,22 @@
             </div>
         </div>
 
+
+
         <!-- Modal: CMD -->
-        <div class="modal fade" id="MODAL_cmd" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="MODAL_VidEdit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-body bg-black">
-                        <p>{{CMD_out}}</p>
-                        <div class="input-group">
-                            <span class="input-group-text bg-transparent border-0 text-success"
-                                id="basic-addon1">{{peerDir}} ></span>
-                            <input type="text" class="form-control bg-transparent border-0 text-white" v-model="CMD_input">
-                        </div>
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_VidEditImg_Title}}</h1>
+                        <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="MODAL_VidEditImg" :src="MODAL_VidEditImg_SRC" height="400">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
+                        <button @click="cropVideo" type="button" class="btn btn-primary col">CROP</button>
                     </div>
                 </div>
             </div>
@@ -214,6 +226,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/bootboxjs/bootbox@6.0.0/dist/bootbox.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/fengyuanchen/cropperjs@1.5.13/dist/cropper.js"></script>
     <script src="script.js"></script>
 
     <style>
