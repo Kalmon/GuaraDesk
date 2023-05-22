@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#757161">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/x-icon" href="/icone.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://cdn.jsdelivr.net/gh/fengyuanchen/cropperjs@1.5.13/dist/cropper.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body oncontextmenu="return false;">
+    <div id="mainAPP">
+        <div v-if="screen=='key'" class="d-flex justify-content-md-center align-items-center vh-100">
+            <div class="input-group mb-3 w-50">
+                <input type="text" class="form-control" v-model="INPUT_key">
+                <span class="input-group-text" id="basic-addon1">#</span>
+                <input type="text" class="form-control" v-model="INPUT_password">
+                <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
+            </div>
+        </div>
+        <div v-else @mousedown="mouseMenu($event)" class="vw-100 vh-100">
+            <nav class="navbar fixed-top navbar-expand-lg bg-body-tertiary">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav w-100">
+                            <li class="nav-item" @click="backDir()">
+                                <a class="nav-link" aria-current="page">
+                                    <i class="fa-solid fa-arrow-left fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item w-50">
+                                <input class="form-control me-2" type="text" v-model="peerDir" v-on:keyup.enter="ls">
+                            </li>
+                            <li class="nav-item" @click="ls(false)">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-house fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="ls(true)">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-rotate fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="uploadFile">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-upload fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item" @click="newFolder">
+                                <a class="nav-link" aria-current="page" href="#">
+                                    <i class="fa-solid fa-folder-plus fa-xl"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item ms-auto">
+                                <a class="nav-link border rounded-2 me-3 ms-3">
+                                    <i class="fa-solid fa-cloud-arrow-down me-1" title="Download"></i>
+                                    <b class="me-2" title="Download">{{formatBytes(PROGRESS_netWorkDown)}}</b>
+                                    <template v-if="PROGRESS_netWorkUploMax != PROGRESS_netWorkUplo">
+                                        <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
+                                        <b class="me-2" title="Upload">{{PROGRESS_netWorkUplo}} of
+                                            {{PROGRESS_netWorkUploMax}}</b>
+                                    </template>
+                                </a>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </nav>
+            <div class="container">
+                <div class="row p-3" id="files">
+                    <div v-for="(item, index) in peerFiles" class="col-4 col-md-2 text-center">
+                        <div
+                            :class="MOUSE_filesSelect.includes(`${peerDir}${item.name}`)  ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
+                            <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
+                                class="position-relative" v-on:dblclick="openFD(item)"
+                                @click="mouseFDselect(item.name)">
+                                <img :src="`data:image/png;base64, ${item.thumbnail}`" class="menushow w-100">
+                                <img :src="typeFile(item.name,item.isDir)['icon']"
+                                    class="menushow position-absolute bottom-0 end-0 img-icon">
+                            </div>
+                            <div v-else>
+                                <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
+                                    @click="mouseFDselect(item.name)" class="menushow">
+                            </div>
+                        </div>
+
+
+                        <p class="menushow text-truncate" :title="item.name">{{item.name}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div :class="MOUSE_menuView ? 'active' : ''" id="context-menu"
+            :style="`top:${MOUSE_menuTop};left:${MOUSE_menuLeft}`" @click="MOUSE_menuView=false">
+            <div class="item" @click="uploadFile">
+                <i class="fa-solid fa-upload fa-xl"></i> Upload
+            </div>
+            <div class="item" @click="newFolder">
+                <i class="fa-solid fa-folder-plus"></i> New Dir
+            </div>
+            <div class="item" v-if="MOUSE_filesSelect.length==1" @click="renameDirFile">
+                <i class="fa-solid fa-pen-to-square"></i> Rename
+            </div>
+            <template v-if="MOUSE_filesSelect.length==1 && typeFile(MOUSE_filesSelect[0])['type']=='video'">
+                <div class="item" @click="videoEditResize">
+                    <i class="fa-solid fa-pen-to-square"></i> Resize
+                </div>
+            </template>
+
+            <template v-if="MOUSE_filesSelect.length>0">
+                <div class="item" @click="MOUSE_filesCopyMov=MOUSE_filesSelect;MOUSE_filesSelect=[];">
+                    <i class="fa-solid fa-copy"></i> Copy/Move
+                </div>
+                <div class="item" @click="zipFD">
+                    <i class="fa-solid fa-file-zipper"></i> Zip
+                </div>
+                <div class="item" @click="deletFilesSelect">
+                    <i class="fa-solid fa-trash"></i> Delet
+                </div>
+            </template>
+            <template v-if="MOUSE_filesCopyMov.length>0">
+                <hr>
+                <div class="item" @click="filesCopMov(true)">
+                    <i class="fa-solid fa-copy"></i> Copy Here
+                </div>
+                <div class="item" @click="filesCopMov(false)">
+                    <i class="fa-solid fa-clone"></i> Move Here
+                </div>
+                <div class="item" @click="MOUSE_filesCopyMov=[]">
+                    <i class="fa-solid fa-xmark"></i> Deslect
+                </div>
+            </template>
+            <hr>
+            <div class="item" @click="ls">
+                <i class="fa fa-refresh"></i> Reload
+            </div>
+            <div class="item" @click="backDir">
+                <i class="fa-solid fa-chevron-left"></i> Back
+            </div>
+            <div class="item" @click="exit">
+                <i class="fa fa-times"></i> Exit
+            </div>
+        </div>
+
+
+
+        <!-- Modal: CMD -->
+        <div class="modal fade" id="MODAL_VidEdit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_VidEditImg_Title}}</h1>
+                        <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="MODAL_VidEditImg" :src="MODAL_VidEditImg_SRC" height="400">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
+                        <button @click="cropVideo" type="button" class="btn btn-primary col">CROP</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Video - IMG -->
+        <div class="modal fade" id="MODAL_vidImg" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_name}}</h1>
+                        <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div v-if="MODAL_vidImg" class="max-vh-65">
+                        <img v-if="typeFile(MODAL_name)['type']=='img'" class="w-100" id="MODAL_img" :src="MODAL_src">
+                        <video v-else-if="typeFile(MODAL_name)['type']=='video'" class="max-vh-50 w-100"
+                            :src="MODAL_src" id="MODAL_video" width="100%" controls>
+
+                        </video>
+                        <embed v-else-if="typeFile(MODAL_name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
+                            type="application/pdf" :src="MODAL_src">
+                        <audio v-else-if="typeFile(MODAL_name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
+                            :src="MODAL_src" controls>
+                        </audio>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
+                        <a :href="MODAL_src" :download="MODAL_name" class="btn btn-primary col">Download</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hide">
+            <input id="INPUT_files" type="file" multiple>
+        </div>
+        <div v-if="Object.keys(ALERTS).length>0" class="fixed-top" style="left: auto;">
+            <div v-for="(item, index) in Object.keys(ALERTS)" :time="destroyAlert(item)"
+                :class="`alert m-1 alert-${ALERTS[item].type} alert-dismissible fade show`" role="alert">
+                {{ALERTS[item].msg}}
+                <button @click="destroyAlert(item,true)" type="button" class="btn-close" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="p2pt.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/bootboxjs/bootbox@6.0.0/dist/bootbox.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/fengyuanchen/cropperjs@1.5.13/dist/cropper.js"></script>
+    <script src="script.js"></script>
+
+    <style>
+
+    </style>
+</body>
+
+</html>
