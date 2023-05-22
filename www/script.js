@@ -39,7 +39,12 @@ var mainVUE = Vue.createApp({
                     type: "success",
                     msg: "Wilticome a GuaraDesk"
                 }
-            }
+            },
+
+
+            //CMD
+            CMD_input: "",
+            CMD_out:""
         }
     },
     async mounted() {
@@ -116,7 +121,6 @@ var mainVUE = Vue.createApp({
                     })
 
                     await sleep(500);
-                    mainVUE.ls();
                 }
             });
         },

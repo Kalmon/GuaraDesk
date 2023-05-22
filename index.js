@@ -312,7 +312,7 @@ var sys = {
                     }
                     now = new Date().getTime();
                     //console.log(stat.mtimeMs);
-                    endTime = new Date(stat.mtimeMs).getTime() + 18000000;
+                    endTime = new Date(stat.mtimeMs).getTime() + 28000000;
                     if (now > endTime) {
                         //console.log(file);
                         fs.unlinkSync(`./temp/${file}`);
