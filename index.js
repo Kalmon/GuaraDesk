@@ -9,6 +9,8 @@ const { spawn } = require('node:child_process');
 var aux = new Object();
 aux['chunks'] = new Object();
 aux['MAX_DIFF_KEY'] = 3;
+aux['opc'] = new Object();
+
 
 //Config ID and password
 aux['config'] = JSON.parse(fs.readFileSync("config.json", { encoding: "utf8" }));
@@ -61,46 +63,32 @@ p2pt.on('peerconnect', (peer) => {
 
 // If message received from peer
 p2pt.on('msg', async (peer, msg) => {
-    if (msg['opc'] == 'ls') {
-        sys.clearTemporario();
-        //Lista diretorio
-        if (msg['data'] == null) {
-            msg['data'] = __dirname + "/";
-            msg['data'] = (msg['data']).split("\\").join("/")
-        }
-        console.log(`LS: ${msg['data']}`);
-        let files = fs.readdirSync(msg['data']),
-            filesSize = new Array();
-        for (let cont = 0; cont < files.length; cont++) {
-            filesSize.push({
-                name: files[cont],
-                isDir: fs.lstatSync(msg['data'] + '/' + files[cont]).isDirectory(),
-                size: fs.lstatSync(msg['data'] + '/' + files[cont]).isDirectory() ? 0 : fs.statSync(msg['data'] + '/' + files[cont]).size,
-                thumbnail: await getThumbnail(`${msg['data']}${files[cont]}`)
-            });
-        }
+    console.log(msg['opc']);
+    if (typeof aux['opc'][msg['opc']] === 'undefined') {
         p2pt.send(peer, {
-            opc: msg['opc'],
+            opc: "alert",
             data: {
-                dir: msg['data'],
-                files: filesSize
+                type: "warning",
+                msg: "Funcion not exist!"
             }
         });
-    } else if (msg['opc'] == 'mkdir') {
-        //Criar diretorio
-        if (!fs.existsSync(`${msg['data']['dir']}${msg['data']['newFolder']}`)) {
-            fs.mkdirSync(`${msg['data']['dir']}${msg['data']['newFolder']}`);
-        } else {
-            p2pt.send(peer, {
-                opc: "alert",
-                data: {
-                    type: "warning",
-                    msg: "Folder already exists with that name!"
-                }
-            });
-        }
+        return peer.respond(null);
+    }
+    try {
+        return peer.respond(await aux['opc'][msg['opc']](peer, msg['data']));
+    } catch (error) {
+        p2pt.send(peer, {
+            opc: "alert",
+            data: {
+                type: "warning",
+                msg: error
+            }
+        });
+    }
+    return null;
 
-    } else if (msg['opc'] == 'getFile') {
+
+    if (msg['opc'] == 'getFile') {
         //Obter arquivo
         let reader = fs.readFileSync(msg['data'], { encoding: "base64" });
         try {
@@ -246,10 +234,7 @@ p2pt.on('msg', async (peer, msg) => {
     return peer.respond('Bye');
 });
 
-//Falta
-async function sendChunk(peer, base64) {
 
-}
 async function cropVideo(File, data) {
     console.log(data);
     return new Promise((resol, reject) => {
@@ -391,6 +376,81 @@ p2pt.start();
 setInterval(() => {
     //p2pt.requestMorePeers();
 }, 5000);
+
+
+// -------------------  FUNCTIONS SERVER
+/*
+aux['opc']['mkdir'] = (Peer,Data)=>{
+
+}
+*/
+
+//Criar pasta
+aux['opc']['mkdir'] = async (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        //Criar diretorio
+        if (!fs.existsSync(`${Data['dir']}${Data['newFolder']}`)) {
+            fs.mkdirSync(`${Data['dir']}${Data['newFolder']}`);
+        } else {
+            p2pt.send(Peer, {
+                opc: "alert",
+                data: {
+                    type: "warning",
+                    msg: "Folder already exists with that name!"
+                }
+            })
+        }
+        Resolv(await aux['opc']['ls'](null, Data['dir']));
+    })
+
+}
+
+//Lista arquivos no diretorio
+aux['opc']['ls'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        sys.clearTemporario();
+        //Lista diretorio
+        if (Data == undefined || Data == null || Data == "") {
+            Data = __dirname + "/";
+            Data = (Data).split("\\").join("/")
+        }
+        console.log(`LS: ${Data}`);
+        let files = fs.readdirSync(Data),
+            filesSize = new Array();
+        for (let cont = 0; cont < files.length; cont++) {
+            filesSize.push({
+                name: files[cont],
+                isDir: fs.lstatSync(Data + '/' + files[cont]).isDirectory(),
+                size: fs.lstatSync(Data + '/' + files[cont]).isDirectory() ? 0 : fs.statSync(Data + '/' + files[cont]).size,
+                thumbnail: await getThumbnail(`${Data}${files[cont]}`)
+            });
+        }
+        Resolv({
+            dir: Data,
+            files: filesSize
+        });
+    })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function randomIntFromInterval(min, max) { // min and max included 

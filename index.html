@@ -45,7 +45,7 @@
                                 </a>
                             </li>
                             <li class="nav-item w-50">
-                                <input class="form-control me-2" type="text" v-model="peerDir" v-on:keyup.enter="ls">
+                                <input class="form-control me-2" type="text" v-model="Host.dir" v-on:keyup.enter="ls">
                             </li>
                             <li class="nav-item" @click="ls(false)">
                                 <a class="nav-link" aria-current="page" href="#">
@@ -70,11 +70,11 @@
                             <li class="nav-item ms-auto">
                                 <a class="nav-link border rounded-2 me-3 ms-3">
                                     <i class="fa-solid fa-cloud-arrow-down me-1" title="Download"></i>
-                                    <b class="me-2" title="Download">{{formatBytes(PROGRESS_netWorkDown)}}</b>
-                                    <template v-if="PROGRESS_netWorkUploMax != PROGRESS_netWorkUplo">
+                                    <b class="me-2" title="Download">{{formatBytes(Network.Down)}}</b>
+                                    <template v-if="Network.UplodMax != Network.Uplod">
                                         <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
-                                        <b class="me-2" title="Upload">{{PROGRESS_netWorkUplo}} of
-                                            {{PROGRESS_netWorkUploMax}}</b>
+                                        <b class="me-2" title="Upload">{{Network.Uplod}} of
+                                            {{Network.UplodMax}}</b>
                                     </template>
                                 </a>
                             </li>
@@ -85,9 +85,9 @@
             </nav>
             <div class="container">
                 <div class="row p-3" id="files">
-                    <div v-for="(item, index) in peerFiles" class="col-4 col-md-2 text-center">
+                    <div v-for="(item, index) in Host.files" class="col-4 col-md-2 text-center">
                         <div
-                            :class="MOUSE_filesSelect.includes(`${peerDir}${item.name}`)  ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
+                            :class="Mouse.filesSelect.includes(`${Host.dir}${item.name}`)  ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
                             <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
                                 class="position-relative" v-on:dblclick="openFD(item)"
                                 @click="mouseFDselect(item.name)">
@@ -108,25 +108,25 @@
             </div>
         </div>
 
-        <div :class="MOUSE_menuView ? 'active' : ''" id="context-menu"
-            :style="`top:${MOUSE_menuTop};left:${MOUSE_menuLeft}`" @click="MOUSE_menuView=false">
+        <div :class="Mouse.menuView ? 'active' : ''" id="context-menu"
+            :style="`top:${Mouse.menuTop};left:${Mouse.menuLeft}`" @click="Mouse.menuView=false">
             <div class="item" @click="uploadFile">
                 <i class="fa-solid fa-upload fa-xl"></i> Upload
             </div>
             <div class="item" @click="newFolder">
                 <i class="fa-solid fa-folder-plus"></i> New Dir
             </div>
-            <div class="item" v-if="MOUSE_filesSelect.length==1" @click="renameDirFile">
+            <div class="item" v-if="Mouse.filesSelect.length==1" @click="renameDirFile">
                 <i class="fa-solid fa-pen-to-square"></i> Rename
             </div>
-            <template v-if="MOUSE_filesSelect.length==1 && typeFile(MOUSE_filesSelect[0])['type']=='video'">
+            <template v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0])['type']=='video'">
                 <div class="item" @click="videoEditResize">
                     <i class="fa-solid fa-pen-to-square"></i> Resize
                 </div>
             </template>
 
-            <template v-if="MOUSE_filesSelect.length>0">
-                <div class="item" @click="MOUSE_filesCopyMov=MOUSE_filesSelect;MOUSE_filesSelect=[];">
+            <template v-if="Mouse.filesSelect.length>0">
+                <div class="item" @click="Mouse.filesCopyMov=Mouse.filesSelect;Mouse.filesSelect=[];">
                     <i class="fa-solid fa-copy"></i> Copy/Move
                 </div>
                 <div class="item" @click="zipFD">
@@ -136,7 +136,7 @@
                     <i class="fa-solid fa-trash"></i> Delet
                 </div>
             </template>
-            <template v-if="MOUSE_filesCopyMov.length>0">
+            <template v-if="Mouse.filesCopyMov.length>0">
                 <hr>
                 <div class="item" @click="filesCopMov(true)">
                     <i class="fa-solid fa-copy"></i> Copy Here
@@ -144,11 +144,26 @@
                 <div class="item" @click="filesCopMov(false)">
                     <i class="fa-solid fa-clone"></i> Move Here
                 </div>
-                <div class="item" @click="MOUSE_filesCopyMov=[]">
+                <div class="item" @click="Mouse.filesCopyMov=[]">
                     <i class="fa-solid fa-xmark"></i> Deslect
                 </div>
             </template>
             <hr>
+            <div class="item" @mouseover="Mouse.Mais.view = true" @mouseleave="Mouse.Mais.view = false">
+                <i class="fa-solid fa-pen-to-square"></i> Mais
+                <div :class="Mouse.Mais.view ? 'active' : ''" id="context-menu" @click="Mouse.menuView=false">
+                    <hr>
+                    <div class="item" @click="ls">
+                        <i class="fa fa-refresh"></i> Reload
+                    </div>
+                    <div class="item" @click="backDir">
+                        <i class="fa-solid fa-chevron-left"></i> Back
+                    </div>
+                    <div class="item" @click="exit">
+                        <i class="fa fa-times"></i> Exit
+                    </div>
+                </div>
+            </div>
             <div class="item" @click="ls">
                 <i class="fa fa-refresh"></i> Reload
             </div>
@@ -186,24 +201,24 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{MODAL_name}}</h1>
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{Modal.name}}</h1>
                         <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div v-if="MODAL_vidImg" class="max-vh-65">
-                        <img v-if="typeFile(MODAL_name)['type']=='img'" class="w-100" id="MODAL_img" :src="MODAL_src">
-                        <video v-else-if="typeFile(MODAL_name)['type']=='video'" class="max-vh-50 w-100"
-                            :src="MODAL_src" id="MODAL_video" width="100%" controls>
+                    <div v-if="Modal.vidImg" class="max-vh-65">
+                        <img v-if="typeFile(Modal.name)['type']=='img'" class="w-100" id="MODAL_img" :src="Modal.src">
+                        <video v-else-if="typeFile(Modal.name)['type']=='video'" class="max-vh-50 w-100"
+                            :src="Modal.src" id="MODAL_video" width="100%" controls>
 
                         </video>
-                        <embed v-else-if="typeFile(MODAL_name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
-                            type="application/pdf" :src="MODAL_src">
-                        <audio v-else-if="typeFile(MODAL_name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
-                            :src="MODAL_src" controls>
+                        <embed v-else-if="typeFile(Modal.name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
+                            type="application/pdf" :src="Modal.src">
+                        <audio v-else-if="typeFile(Modal.name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
+                            :src="Modal.src" controls>
                         </audio>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
-                        <a :href="MODAL_src" :download="MODAL_name" class="btn btn-primary col">Download</a>
+                        <a :href="Modal.src" :download="Modal.name" class="btn btn-primary col">Download</a>
                     </div>
                 </div>
             </div>
