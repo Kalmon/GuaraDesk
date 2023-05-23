@@ -63,7 +63,6 @@ p2pt.on('peerconnect', (peer) => {
 
 // If message received from peer
 p2pt.on('msg', async (peer, msg) => {
-    console.log(msg['opc']);
     if (typeof aux['opc'][msg['opc']] === 'undefined') {
         p2pt.send(peer, {
             opc: "alert",
@@ -75,6 +74,7 @@ p2pt.on('msg', async (peer, msg) => {
         return peer.respond(null);
     }
     try {
+        console.log(msg['opc']);
         return peer.respond(await aux['opc'][msg['opc']](peer, msg['data']));
     } catch (error) {
         p2pt.send(peer, {
@@ -85,179 +85,7 @@ p2pt.on('msg', async (peer, msg) => {
             }
         });
     }
-    return null;
-
-
-    if (msg['opc'] == 'getFile') {
-        //Obter arquivo
-        let reader = fs.readFileSync(msg['data'], { encoding: "base64" });
-        try {
-            p2pt.send(peer, {
-                opc: "getFile",
-                data: {
-                    name: msg['data'],
-                    base64: reader
-                }
-            });
-        } catch (error) {
-            sys.errLog(error);
-            sys.log("Usuario desconectou durante envio...");
-        }
-    } else if (msg['opc'] == 'filesCopMov') {
-
-        for (let cont = 0, fileDest; cont < msg['data']['files'].length; cont++) {
-            fileDest = msg['data']['files'][cont].split("/");
-            //Is a folder? /media/files/
-            if (fileDest[fileDest.length - 1] == "") {
-                fileDest = fileDest[fileDest.length - 2]; //Name dir
-            } else {
-                fileDest = fileDest[fileDest.length - 1]; //Name file
-            }
-
-            try {
-                //FALSE = Move, TRUE= Copy
-                if (msg['data']['type']) {
-                    fs.copyFile(msg['data']['files'][cont], `${msg['data']['dir']}${fileDest}`, (err) => {
-                        if (err) throw err;
-                        console.log('source.txt was copied to destination.txt');
-                    });
-                } else {
-                    //If msg['data']['rename']==null? Então vamos mover : renomar
-                    fs.rename(msg['data']['files'][cont], `${msg['data']['dir']}${msg['data']['rename'] == undefined ? fileDest : msg['data']['rename']}`, function (err) {
-                        if (err) throw err
-                        console.log('Successfully renamed - AKA moved!')
-                    })
-                }
-            } catch (error) {
-                p2pt.send(peer, {
-                    opc: "alert",
-                    data: {
-                        type: "warning",
-                        msg: error
-                    }
-                });
-            }
-
-
-        };
-
-
-    } else if (msg['opc'] == 'getImgVideoEdit') {
-        //obter icone do arquivo
-        p2pt.send(peer, {
-            opc: "getImgVideoEdit",
-            data: {
-                file: msg['data']['file'],
-                base64: await getThumbnail(msg['data']['file'], true)
-            }
-        });
-
-    } else if (msg['opc'] == 'writeFile') {
-        //obter icone do arquivo
-        console.log("arquivos recebidos!");
-        fs.writeFileSync(`${msg['data']['dir']}${msg['data']['name']}`, msg['data']['base64'], { encoding: "base64" });
-        //Remover thumbnail anterior caso tenha...
-        try {
-            fs.unlinkSync(`./temp/${MD5(`${msg['data']['dir']}${msg['data']['name']}`)}`);
-        } catch (error) {
-            //Arquivo não existe, fodasi
-        }
-    } else if (msg['opc'] == 'deletFiles') {
-        for (let cont = 0; cont < msg['data'].length; cont++) {
-            if (fs.lstatSync(msg['data'][cont]).isDirectory()) {
-                fs.rmSync(msg['data'][cont], { recursive: true, force: true });
-            } else {
-                fs.unlinkSync(msg['data'][cont]);
-            }
-        }
-    } else if (msg['opc'] == 'zipFD') {
-        var zip7;
-        zip7 = spawn(sys.bin.zip, ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
-        zip7.stdout.on('data', (data) => {
-            //console.log(`stdout: ${data}`);
-        });
-
-        zip7.stderr.on('data', (dataerr) => {
-            //console.error(`stderr: ${data}`);
-            //resolv(null);
-            //sys.errLog(data);
-            p2pt.send(peer, {
-                opc: "alert",
-                data: {
-                    type: "warning",
-                    msg: dataerr
-                }
-            });
-        });
-
-        zip7.on('close', async (code) => {
-            try {
-                console.log("7za finalizado...");
-                p2pt.send(peer, {
-                    opc: "alert",
-                    data: {
-                        type: "success",
-                        msg: "Successfully compressed file!"
-                    }
-                });
-            } catch (error) {
-                sys.errLog(error);
-            }
-
-        });
-    } else if (msg['opc'] == 'cropVideo') {
-        //obter icone do arquivo
-        cropVideo(msg['data']['file'], msg['data']['size']).then(res => {
-            if (res.res) {
-                p2pt.send(peer, {
-                    opc: "alert",
-                    data: {
-                        type: "success",
-                        msg: "Your video has been resized!"
-                    }
-                });
-            } else {
-                p2pt.send(peer, {
-                    opc: "alert",
-                    data: {
-                        type: "warning",
-                        msg: res.msg
-                    }
-                });
-            }
-        });
-
-
-    }
-
-    //Evitar promissas
-    return peer.respond('Bye');
 });
-
-
-async function cropVideo(File, data) {
-    console.log(data);
-    return new Promise((resol, reject) => {
-        let output = File.split("/");
-        output[output.length - 1] = "resiz_" + output[output.length - 1];
-        output = output.join("/");
-        ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
-        ls.stdout.on('data', (data) => {
-            //console.log(`stdout: ${data}`);
-        });
-
-        ls.stderr.on('data', (data) => {
-            //console.error(`stderr: ${data}`);
-            //resolv(null);
-            //sys.errLog(data);
-            //resol({ res: true, msg: data });
-        });
-
-        ls.on('close', async (code) => {
-            resol({ res: true });
-        });
-    });
-}
 
 async function getThumbnail(File, qualityFull = false) {
     return await new Promise(async (resolv, reject) => {
@@ -380,27 +208,193 @@ setInterval(() => {
 
 // -------------------  FUNCTIONS SERVER
 /*
-aux['opc']['mkdir'] = (Peer,Data)=>{
+aux['opc']['cropVideo'] = (Peer,Data)=>{
+    return new Promise(async (Resolv,Reject)=>{
 
+    })
 }
 */
+
+//Corta video
+aux['opc']['cropVideo'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        try {
+            let output = Data['file'].split("/");
+            output[output.length - 1] = "resiz_" + output[output.length - 1];
+            output = output.join("/");
+            ls = spawn(sys.bin.ffmpeg, ['-y', '-i', Data['file'], '-vf', `crop=${Data['size'].w}:${Data['size'].h}:${Data['size'].x}:${Data['size'].y}`, `${output}`]);
+            ls.stdout.on('data', (data) => {
+                //console.log(`stdout: ${data}`);
+            });
+
+            ls.stderr.on('data', (data) => {
+                //console.error(`stderr: ${data}`);
+                //resolv(null);
+                //sys.errLog(data);
+                //resol({ res: true, msg: data });
+            });
+
+            ls.on('close', async (code) => {
+                Resolv({
+                    type: "success",
+                    msg: "Successfully, video resized!"
+                });
+            });
+        } catch (error) {
+            Reject(error);
+        }
+
+    })
+}
+
+//Zipar arquivos
+aux['opc']['zipFD'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        try {
+            let zip7;
+            zip7 = spawn(sys.bin.zip, ['a', '-t7z', `${Data['dir']}${Data['zip7name']}.7z`].concat(Data['files']));
+            zip7.stdout.on('data', (data) => {
+                //console.log(`stdout: ${data}`);
+            });
+
+            zip7.stderr.on('data', (dataerr) => {
+                //console.error(`stderr: ${data}`);
+                //resolv(null);
+                //sys.errLog(data);
+                Reject(dataerr);
+            });
+
+            zip7.on('close', async (code) => {
+                Resolv({
+                    type: "success",
+                    msg: "Successfully compressed file!"
+                });
+            });
+        } catch (error) {
+            Reject(error);
+        }
+    })
+}
+
+//Deletar arquivos
+aux['opc']['deletFiles'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        try {
+            for (let cont = 0; cont < Data['files'].length; cont++) {
+                if (fs.lstatSync(Data['files'][cont]).isDirectory()) {
+                    fs.rmSync(Data['files'][cont], { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(Data['files'][cont]);
+                }
+            }
+            Resolv(await aux['opc']['ls'](null, Data['dir']));
+        } catch (error) {
+            Reject(error);
+        }
+    })
+}
+
+//Upload arquivo
+aux['opc']['writeFile'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        console.log("arquivos recebidos!");
+        try {
+            fs.writeFileSync(`${Data['dir']}${Data['name']}`, Data['base64'], { encoding: "base64" });
+
+        } catch (error) {
+            Reject(error);
+        }
+
+        //Remover thumbnail anterior caso tenha...
+        try {
+            fs.unlinkSync(`./temp/${MD5(`${Data['dir']}${Data['name']}`)}`);
+        } catch (error) {
+            //Arquivo não existe, fodasi
+        }
+        Resolv({
+            type: "success",
+            msg: `Successfully upload file! <br> ${Data['dir']}${Data['name']}`
+        });
+    })
+}
+
+//Obter image video para edição
+aux['opc']['getImgVideoEdit'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        try {
+            Resolv({
+                file: Data['file'],
+                base64: await getThumbnail(Data['file'], true)
+            })
+        } catch (error) {
+            Reject(error);
+        }
+    })
+}
+
+//Copiar e mover arquivos
+aux['opc']['filesCopMov'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        for (let cont = 0, fileDest; cont < Data['files'].length; cont++) {
+            fileDest = Data['files'][cont].split("/");
+            //Is a folder? /media/files/
+            if (fileDest[fileDest.length - 1] == "") {
+                fileDest = fileDest[fileDest.length - 2]; //Name dir
+            } else {
+                fileDest = fileDest[fileDest.length - 1]; //Name file
+            }
+
+            try {
+                //FALSE = Move, TRUE= Copy
+                if (Data['type']) {
+                    fs.copyFileSync(Data['files'][cont], `${Data['dir']}${fileDest}`);
+                } else {
+                    //If Data['rename']==null? Então vamos mover : renomar
+                    fs.renameSync(Data['files'][cont], `${Data['dir']}${Data['rename'] == undefined ? fileDest : Data['rename']}`, function (err) {
+                        if (err) throw err
+                    })
+                }
+            } catch (error) {
+                Reject(error);
+            }
+        };
+        Resolv(await aux['opc']['ls'](null, Data['dir']));
+    })
+}
+
+//Ler arquivo
+aux['opc']['getFile'] = (Peer, Data) => {
+    return new Promise((Resolv, Reject) => {
+        try {
+            let reader = fs.readFileSync(Data, { encoding: "base64" });
+            Resolv(reader);
+        } catch (error) {
+            Reject(error);
+        }
+
+    })
+}
 
 //Criar pasta
 aux['opc']['mkdir'] = async (Peer, Data) => {
     return new Promise(async (Resolv, Reject) => {
-        //Criar diretorio
-        if (!fs.existsSync(`${Data['dir']}${Data['newFolder']}`)) {
-            fs.mkdirSync(`${Data['dir']}${Data['newFolder']}`);
-        } else {
-            p2pt.send(Peer, {
-                opc: "alert",
-                data: {
-                    type: "warning",
-                    msg: "Folder already exists with that name!"
-                }
-            })
+        try {
+            //Criar diretorio
+            if (!fs.existsSync(`${Data['dir']}${Data['newFolder']}`)) {
+                fs.mkdirSync(`${Data['dir']}${Data['newFolder']}`);
+            } else {
+                p2pt.send(Peer, {
+                    opc: "alert",
+                    data: {
+                        type: "warning",
+                        msg: "Folder already exists with that name!"
+                    }
+                })
+            }
+            Resolv(await aux['opc']['ls'](null, Data['dir']));
+        } catch (error) {
+            Reject(error);
         }
-        Resolv(await aux['opc']['ls'](null, Data['dir']));
     })
 
 }
@@ -408,27 +402,30 @@ aux['opc']['mkdir'] = async (Peer, Data) => {
 //Lista arquivos no diretorio
 aux['opc']['ls'] = (Peer, Data) => {
     return new Promise(async (Resolv, Reject) => {
-        sys.clearTemporario();
-        //Lista diretorio
-        if (Data == undefined || Data == null || Data == "") {
-            Data = __dirname + "/";
-            Data = (Data).split("\\").join("/")
-        }
-        console.log(`LS: ${Data}`);
-        let files = fs.readdirSync(Data),
-            filesSize = new Array();
-        for (let cont = 0; cont < files.length; cont++) {
-            filesSize.push({
-                name: files[cont],
-                isDir: fs.lstatSync(Data + '/' + files[cont]).isDirectory(),
-                size: fs.lstatSync(Data + '/' + files[cont]).isDirectory() ? 0 : fs.statSync(Data + '/' + files[cont]).size,
-                thumbnail: await getThumbnail(`${Data}${files[cont]}`)
+        try {
+            sys.clearTemporario();
+            //Lista diretorio
+            if (Data == undefined || Data == null || Data == "") {
+                Data = __dirname + "/";
+                Data = (Data).split("\\").join("/")
+            }
+            let files = fs.readdirSync(Data),
+                filesSize = new Array();
+            for (let cont = 0; cont < files.length; cont++) {
+                filesSize.push({
+                    name: files[cont],
+                    isDir: fs.lstatSync(Data + '/' + files[cont]).isDirectory(),
+                    size: fs.lstatSync(Data + '/' + files[cont]).isDirectory() ? 0 : fs.statSync(Data + '/' + files[cont]).size,
+                    thumbnail: await getThumbnail(`${Data}${files[cont]}`)
+                });
+            }
+            Resolv({
+                dir: Data,
+                files: filesSize
             });
+        } catch (error) {
+            Reject(error);
         }
-        Resolv({
-            dir: Data,
-            files: filesSize
-        });
     })
 }
 

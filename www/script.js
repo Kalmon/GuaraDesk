@@ -83,13 +83,15 @@ var GuaraDesk = Vue.createApp({
             temp = chucksFiles;
             for (let cont = 0; cont < chucksFiles.length; cont++) {
                 console.log(`File N°${cont}`);
-                await p2pt.send(GuaraDesk.Host.con, {
+                p2pt.send(GuaraDesk.Host.con, {
                     opc: "writeFile",
                     data: {
                         name: chucksFiles[cont].name,
                         dir: GuaraDesk.Host.dir,
                         base64: chucksFiles[cont]['chucks']
                     }
+                }).then(([peer, data]) => {
+                    GuaraDesk.pushAlert(data);
                 })
                 GuaraDesk.Network.Uplod = cont;
             }
@@ -117,6 +119,10 @@ var GuaraDesk = Vue.createApp({
 
     },
     methods: {
+        pushAlert: (alert) => {
+            let id = randMinMax(1, 999999) + "_alert";
+            GuaraDesk.ALERTS[id] = alert;
+        },
         cropVideo: () => {
             p2pt.send(GuaraDesk.Host.con, {
                 opc: "cropVideo",
@@ -129,8 +135,8 @@ var GuaraDesk = Vue.createApp({
                         h: parseInt(aux['cropper'].getData()['height'])
                     }
                 }
-            }).then(([peer, data]) => {
-
+            }).then(([Peer, Data]) => {
+                GuaraDesk.pushAlert(Data);
             })
             $("#MODAL_VidEdit").modal("close")
         },
@@ -140,8 +146,20 @@ var GuaraDesk = Vue.createApp({
                 data: {
                     file: GuaraDesk.Mouse.filesSelect[0]
                 }
-            }).then(([peer, data]) => {
+            }).then(async ([Peer, Data]) => {
+                GuaraDesk.MODAL_VidEditImg_Title = Data['file'].split("/")[Data['file'].split("/").length - 1];
+                GuaraDesk.MODAL_VidEditImg_SRC = `data:image/jpg;base64, ${Data['base64']}`;
+                $("#MODAL_VidEdit").modal("show");
 
+                await sleep(1000);
+
+                aux['cropper'] = new Cropper(document.getElementById('MODAL_VidEditImg'), {
+                    viewMode: 1,
+                    crop(event) {
+                        console.log(`X: ${event.detail.x} Y: $${event.detail.y}`);
+                        console.log(`W: ${event.detail.width} H: $${event.detail.height}`);
+                    },
+                });
             })
         },
         destroyAlert: (idAlert, inst = false) => {
@@ -170,8 +188,8 @@ var GuaraDesk = Vue.createApp({
                             dir: GuaraDesk.Host.dir,
                             zip7name: result
                         }
-                    }).then(([peer, data]) => {
-
+                    }).then(([Peer, Data]) => {
+                        GuaraDesk.pushAlert(Data);
                     })
 
                     await sleep(500);
@@ -195,12 +213,11 @@ var GuaraDesk = Vue.createApp({
                             rename: result,
                             type: false //Move == rename
                         }
-                    }).then(([peer, data]) => {
-
+                    }).then(([Peer, Data]) => {
+                        GuaraDesk.Host.dir = Data['dir'];
+                        GuaraDesk.Host.files = Data['files'];
+                        localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
                     })
-
-                    await sleep(500);
-                    GuaraDesk.ls();
                 }
             });
         },
@@ -217,12 +234,13 @@ var GuaraDesk = Vue.createApp({
                     dir: GuaraDesk.Host.dir,
                     type: type
                 }
-            }).then(([peer, data]) => {
-
+            }).then(([Peer, Data]) => {
+                console.info("filesCopMov: "+Data);
+                GuaraDesk.Host.dir = Data['dir'];
+                GuaraDesk.Host.files = Data['files'];
+                localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
             })
             GuaraDesk.Mouse.filesCopyMov = [];
-            await sleep(500);
-            GuaraDesk.ls();
         },
         formatBytes: (bytes, decimals = 2) => {
             if (!+bytes) return '0 Bytes'
@@ -238,13 +256,16 @@ var GuaraDesk = Vue.createApp({
         deletFilesSelect: async () => {
             await p2pt.send(GuaraDesk.Host.con, {
                 opc: "deletFiles",
-                data: GuaraDesk.Mouse.filesSelect
-            }).then(([peer, data]) => {
-
+                data: {
+                    dir: GuaraDesk.Host.dir,
+                    files: GuaraDesk.Mouse.filesSelect
+                }
+            }).then(([Peer, Data]) => {
+                console.log("Delet callback!"+Data);
+                GuaraDesk.Host.dir = Data['dir'];
+                GuaraDesk.Host.files = Data['files'];
+                localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
             })
-
-            await sleep(500);
-            GuaraDesk.ls();
         },
         mouseMenu: (event) => {
             event.preventDefault();
@@ -377,9 +398,9 @@ var GuaraDesk = Vue.createApp({
             p2pt.send(GuaraDesk.Host.con, {
                 opc: "ls",
                 data: myDir
-            }).then(([peer, data]) => {
-                GuaraDesk.Host.dir = data['dir'];
-                GuaraDesk.Host.files = data['files'];
+            }).then(([Peer, Data]) => {
+                GuaraDesk.Host.dir = Data['dir'];
+                GuaraDesk.Host.files = Data['files'];
                 localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
             })
         },
@@ -398,8 +419,24 @@ var GuaraDesk = Vue.createApp({
                 await p2pt.send(GuaraDesk.Host.con, {
                     opc: "getFile",
                     data: `${GuaraDesk.Host.dir}/${fileName.name}`
-                }).then(([peer, data]) => {
-
+                }).then(([Peer, Data]) => {
+                    console.log("arquivos recebidos!");
+                    let tyope = GuaraDesk.typeFile(
+                        (Data['name']).split("/")[(Data['name']).split("/").length - 1]
+                    );
+                    //!FALTA convert buffer em base64
+                    if (tyope.type == "video") {
+                        GuaraDesk.Modal.src = `data:video/mp4;base64, ${Data['base64']}`;
+                    } else if (tyope.type == "img") {
+                        GuaraDesk.Modal.src = `data:image/png;base64, ${Data['base64']}`;
+                    } else if (tyope.type == "pdf") {
+                        GuaraDesk.Modal.src = `data:application/pdf;base64, ${Data['base64']}`;
+                    } else if (tyope.type == "mp3") {
+                        GuaraDesk.Modal.src = `data:audio/mp3;base64, ${Data['base64']}`;
+                    } else {
+                        GuaraDesk.Modal.src = `data:text/plain;base64, ${Data['base64']}`;
+                    }
+                    $("#MODAL_vidImg").modal("show")
                 })
             }
 
@@ -444,44 +481,11 @@ var GuaraDesk = Vue.createApp({
                         GuaraDesk.Host.dir = localStorage.getItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`);
                         GuaraDesk.ls(false);
                     }
-                } else if (msg['opc'] == "ls") {
-
-                } else if (msg['opc'] == "getFile") {
-                    console.log("arquivos recebidos!");
-                    let tyope = GuaraDesk.typeFile(
-                        (msg['data']['name']).split("/")[(msg['data']['name']).split("/").length - 1]
-                    );
-                    //!FALTA convert buffer em base64
-                    if (tyope.type == "video") {
-                        GuaraDesk.Modal.src = `data:video/mp4;base64, ${msg['data']['base64']}`;
-                    } else if (tyope.type == "img") {
-                        GuaraDesk.Modal.src = `data:image/png;base64, ${msg['data']['base64']}`;
-                    } else if (tyope.type == "pdf") {
-                        GuaraDesk.Modal.src = `data:application/pdf;base64, ${msg['data']['base64']}`;
-                    } else if (tyope.type == "mp3") {
-                        GuaraDesk.Modal.src = `data:audio/mp3;base64, ${msg['data']['base64']}`;
-                    } else {
-                        GuaraDesk.Modal.src = `data:text/plain;base64, ${msg['data']['base64']}`;
-                    }
-                    $("#MODAL_vidImg").modal("show")
                 } else if (msg['opc'] == "alert") {
                     let id = randMinMax(1, 999999) + "_alert";
                     GuaraDesk.ALERTS[id] = msg['data'];
-                } else if (msg['opc'] == "getImgVideoEdit") {
+                } else {
                     console.log("chegou aqui");
-                    GuaraDesk.MODAL_VidEditImg_Title = msg['data']['file'].split("/")[msg['data']['file'].split("/").length - 1];
-                    GuaraDesk.MODAL_VidEditImg_SRC = `data:image/jpg;base64, ${msg['data']['base64']}`;
-                    $("#MODAL_VidEdit").modal("show");
-
-                    await sleep(1000);
-
-                    aux['cropper'] = new Cropper(document.getElementById('MODAL_VidEditImg'), {
-                        viewMode: 1,
-                        crop(event) {
-                            console.log(`X: ${event.detail.x} Y: $${event.detail.y}`);
-                            console.log(`W: ${event.detail.width} H: $${event.detail.height}`);
-                        },
-                    });
                 }
                 //Evitar promissas
                 return peer.respond('Bye');
