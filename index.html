@@ -149,10 +149,11 @@
                 </div>
             </template>
             <hr>
-            <div class="item" @mouseover="Mouse.Mais.view = true" @mouseleave="Mouse.Mais.view = false">
+            <div v-if="Mouse.filesSelect.length>0 && typeFile(Mouse.filesSelect[0])['type']=='file'" class="item" @mouseover="Mouse.Mais.view = true" @mouseleave="Mouse.Mais.view = false">
                 <!-- SUBMENU -->
-                <div :class="Mouse.Mais.view ? 'active border border-light' : ''" id="context-menu" style="right: -149px;">
-                    <div class="item" @click="get">
+                <div :class="Mouse.Mais.view ? 'active border border-light' : ''" id="context-menu"
+                    style="right: -149px;">
+                    <div class="item" @click="fileDitor">
                         <i class="fa-regular fa-file-lines"></i> Editor Texto
                     </div>
                 </div>
@@ -169,9 +170,26 @@
             </div>
         </div>
 
+        <!-- Modal: Editor de texto -->
+        <div class="modal fade" id="MODAL_textEdit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{ModalEditText.title}}</h1>
+                        <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <textarea class="w-100" style="height: 350px;" :value="ModalEditText.base64"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
+                        <button @click="ModalEditText.confirm" type="button" class="btn btn-primary col">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-
-        <!-- Modal: CMD -->
+        <!-- Modal: cortador de video -->
         <div class="modal fade" id="MODAL_VidEdit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -195,24 +213,24 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{Modal.name}}</h1>
+                        <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{ModalView.name}}</h1>
                         <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div v-if="Modal.vidImg" class="max-vh-65">
-                        <img v-if="typeFile(Modal.name)['type']=='img'" class="w-100" id="MODAL_img" :src="Modal.src">
-                        <video v-else-if="typeFile(Modal.name)['type']=='video'" class="max-vh-50 w-100"
-                            :src="Modal.src" id="MODAL_video" width="100%" controls>
+                    <div v-if="ModalView.vidImg" class="max-vh-65">
+                        <img v-if="typeFile(ModalView.name)['type']=='img'" class="w-100" id="MODAL_img" :src="ModalView.src">
+                        <video v-else-if="typeFile(ModalView.name)['type']=='video'" class="max-vh-50 w-100"
+                            :src="ModalView.src" id="MODAL_video" width="100%" controls>
 
                         </video>
-                        <embed v-else-if="typeFile(Modal.name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
-                            type="application/pdf" :src="Modal.src">
-                        <audio v-else-if="typeFile(Modal.name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
-                            :src="Modal.src" controls>
+                        <embed v-else-if="typeFile(ModalView.name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
+                            type="application/pdf" :src="ModalView.src">
+                        <audio v-else-if="typeFile(ModalView.name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
+                            :src="ModalView.src" controls>
                         </audio>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
-                        <a :href="Modal.src" :download="Modal.name" class="btn btn-primary col">Download</a>
+                        <a :href="ModalView.src" :download="ModalView.name" class="btn btn-primary col">Download</a>
                     </div>
                 </div>
             </div>

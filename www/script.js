@@ -19,12 +19,22 @@ var GuaraDesk = Vue.createApp({
             INPUT_key: localStorage.getItem("INPUT_key") == null ? "" : localStorage.getItem("INPUT_key"),
 
             //Modal view midia
-            Modal: {
+            ModalView: {
                 vidImg: false,
                 name: "",
                 base64: "",
                 type: "",
                 src: ""
+            },
+
+            //Modal editor de texto
+            ModalEditText:{
+                title:"",
+                base64:"",
+                confirm:()=>{
+                    const blob = new Blob([GuaraDesk.ModalEditText.base64], {type : 'text/plain'})
+                    $("#INPUT_files").append('file', blob, GuaraDesk.ModalEditText.title);
+                }
             },
 
             // Menu mouse
@@ -102,10 +112,10 @@ var GuaraDesk = Vue.createApp({
 
         //Desativar video que esteja rodando
         $('#MODAL_vidImg').on('show.bs.modal', function (e) {
-            GuaraDesk.Modal.vidImg = true;
+            GuaraDesk.ModalView.vidImg = true;
         });
         $('#MODAL_vidImg').on('hide.bs.modal', function (e) {
-            GuaraDesk.Modal.vidImg = false;
+            GuaraDesk.ModalView.vidImg = false;
         });
 
         //Editor de video
@@ -119,6 +129,18 @@ var GuaraDesk = Vue.createApp({
 
     },
     methods: {
+        fileDitor: () => {
+            p2pt.send(GuaraDesk.Host.con, {
+                opc: "getFile",
+                data: GuaraDesk.Mouse.filesSelect[0]
+            }).then(([Peer, Data]) => {
+                console.log("arquivos recebidos!");
+                GuaraDesk.ModalEditText.base64 = atob(Data);
+                $("#MODAL_textEdit").modal("show")
+            })
+            GuaraDesk.ModalEditText.title = (GuaraDesk.Mouse.filesSelect[0]).split("/").slice(-1)[0];
+            GuaraDesk.Mouse.filesSelect = [];
+        },
         pushAlert: (alert) => {
             let id = randMinMax(1, 999999) + "_alert";
             GuaraDesk.ALERTS[id] = alert;
@@ -235,7 +257,7 @@ var GuaraDesk = Vue.createApp({
                     type: type
                 }
             }).then(([Peer, Data]) => {
-                console.info("filesCopMov: "+Data);
+                console.info("filesCopMov: " + Data);
                 GuaraDesk.Host.dir = Data['dir'];
                 GuaraDesk.Host.files = Data['files'];
                 localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
@@ -261,7 +283,7 @@ var GuaraDesk = Vue.createApp({
                     files: GuaraDesk.Mouse.filesSelect
                 }
             }).then(([Peer, Data]) => {
-                console.log("Delet callback!"+Data);
+                console.log("Delet callback!" + Data);
                 GuaraDesk.Host.dir = Data['dir'];
                 GuaraDesk.Host.files = Data['files'];
                 localStorage.setItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`, GuaraDesk.Host.dir);
@@ -411,8 +433,8 @@ var GuaraDesk = Vue.createApp({
                 GuaraDesk.Host.dir = `${GuaraDesk.Host.dir}${fileName.name}`;
                 GuaraDesk.ls();
             } else {
-                GuaraDesk.Modal.type = GuaraDesk.typeFile(GuaraDesk.Modal.name)['type'];
-                GuaraDesk.Modal.name = fileName.name;
+                GuaraDesk.ModalView.type = GuaraDesk.typeFile(GuaraDesk.ModalView.name)['type'];
+                GuaraDesk.ModalView.name = fileName.name;
                 aux['chunks'][MD5(`${GuaraDesk.Host.dir}/${fileName.name}`)] = new Array();
 
                 //Arquivo
@@ -422,19 +444,19 @@ var GuaraDesk = Vue.createApp({
                 }).then(([Peer, Data]) => {
                     console.log("arquivos recebidos!");
                     let tyope = GuaraDesk.typeFile(
-                        GuaraDesk.Modal.name
+                        GuaraDesk.ModalView.name
                     );
                     //!FALTA convert buffer em base64
                     if (tyope.type == "video") {
-                        GuaraDesk.Modal.src = `data:video/mp4;base64, ${Data}`;
+                        GuaraDesk.ModalView.src = `data:video/mp4;base64, ${Data}`;
                     } else if (tyope.type == "img") {
-                        GuaraDesk.Modal.src = `data:image/png;base64, ${Data}`;
+                        GuaraDesk.ModalView.src = `data:image/png;base64, ${Data}`;
                     } else if (tyope.type == "pdf") {
-                        GuaraDesk.Modal.src = `data:application/pdf;base64, ${Data}`;
+                        GuaraDesk.ModalView.src = `data:application/pdf;base64, ${Data}`;
                     } else if (tyope.type == "mp3") {
-                        GuaraDesk.Modal.src = `data:audio/mp3;base64, ${Data}`;
+                        GuaraDesk.ModalView.src = `data:audio/mp3;base64, ${Data}`;
                     } else {
-                        GuaraDesk.Modal.src = `data:text/plain;base64, ${Data}`;
+                        GuaraDesk.ModalView.src = `data:text/plain;base64, ${Data}`;
                     }
                     $("#MODAL_vidImg").modal("show")
                 })
