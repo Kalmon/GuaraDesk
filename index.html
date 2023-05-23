@@ -108,7 +108,7 @@
             </div>
         </div>
 
-        <div :class="Mouse.menuView ? 'active' : ''" id="context-menu"
+        <div :class="Mouse.menuView ? 'active border border-light' : ''" id="context-menu"
             :style="`top:${Mouse.menuTop};left:${Mouse.menuLeft}`" @click="Mouse.menuView=false">
             <div class="item" @click="uploadFile">
                 <i class="fa-solid fa-upload fa-xl"></i> Upload
@@ -150,19 +150,13 @@
             </template>
             <hr>
             <div class="item" @mouseover="Mouse.Mais.view = true" @mouseleave="Mouse.Mais.view = false">
-                <i class="fa-solid fa-pen-to-square"></i> Mais
-                <div :class="Mouse.Mais.view ? 'active' : ''" id="context-menu" @click="Mouse.menuView=false">
-                    <hr>
-                    <div class="item" @click="ls">
-                        <i class="fa fa-refresh"></i> Reload
-                    </div>
-                    <div class="item" @click="backDir">
-                        <i class="fa-solid fa-chevron-left"></i> Back
-                    </div>
-                    <div class="item" @click="exit">
-                        <i class="fa fa-times"></i> Exit
+                <!-- SUBMENU -->
+                <div :class="Mouse.Mais.view ? 'active border border-light' : ''" id="context-menu" style="right: -149px;">
+                    <div class="item" @click="get">
+                        <i class="fa-regular fa-file-lines"></i> Editor Texto
                     </div>
                 </div>
+                <i class="fa-solid fa-pen-to-square"></i> Abrir com
             </div>
             <div class="item" @click="ls">
                 <i class="fa fa-refresh"></i> Reload

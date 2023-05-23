@@ -416,25 +416,25 @@ var GuaraDesk = Vue.createApp({
                 aux['chunks'][MD5(`${GuaraDesk.Host.dir}/${fileName.name}`)] = new Array();
 
                 //Arquivo
-                await p2pt.send(GuaraDesk.Host.con, {
+                p2pt.send(GuaraDesk.Host.con, {
                     opc: "getFile",
                     data: `${GuaraDesk.Host.dir}/${fileName.name}`
                 }).then(([Peer, Data]) => {
                     console.log("arquivos recebidos!");
                     let tyope = GuaraDesk.typeFile(
-                        (Data['name']).split("/")[(Data['name']).split("/").length - 1]
+                        GuaraDesk.Modal.name
                     );
                     //!FALTA convert buffer em base64
                     if (tyope.type == "video") {
-                        GuaraDesk.Modal.src = `data:video/mp4;base64, ${Data['base64']}`;
+                        GuaraDesk.Modal.src = `data:video/mp4;base64, ${Data}`;
                     } else if (tyope.type == "img") {
-                        GuaraDesk.Modal.src = `data:image/png;base64, ${Data['base64']}`;
+                        GuaraDesk.Modal.src = `data:image/png;base64, ${Data}`;
                     } else if (tyope.type == "pdf") {
-                        GuaraDesk.Modal.src = `data:application/pdf;base64, ${Data['base64']}`;
+                        GuaraDesk.Modal.src = `data:application/pdf;base64, ${Data}`;
                     } else if (tyope.type == "mp3") {
-                        GuaraDesk.Modal.src = `data:audio/mp3;base64, ${Data['base64']}`;
+                        GuaraDesk.Modal.src = `data:audio/mp3;base64, ${Data}`;
                     } else {
-                        GuaraDesk.Modal.src = `data:text/plain;base64, ${Data['base64']}`;
+                        GuaraDesk.Modal.src = `data:text/plain;base64, ${Data}`;
                     }
                     $("#MODAL_vidImg").modal("show")
                 })
