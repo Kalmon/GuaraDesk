@@ -28,12 +28,22 @@ var GuaraDesk = Vue.createApp({
             },
 
             //Modal editor de texto
-            ModalEditText:{
-                title:"",
-                base64:"",
-                confirm:()=>{
-                    const blob = new Blob([GuaraDesk.ModalEditText.base64], {type : 'text/plain'})
-                    $("#INPUT_files").append('file', blob, GuaraDesk.ModalEditText.title);
+            ModalEditText: {
+                title: "",
+                base64: "",
+                confirm: () => {
+                    console.log("input Files");
+
+                    // Create a new File object
+                    let myFile = new File([GuaraDesk.ModalEditText.base64], GuaraDesk.ModalEditText.title, {
+                        type: 'text/plain',
+                        lastModified: new Date(),
+                    });
+
+                    // Now let's create a DataTransfer to get a FileList
+                    let dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(myFile);
+                    filesUpload(dataTransfer.files)
                 }
             },
 
@@ -79,35 +89,7 @@ var GuaraDesk = Vue.createApp({
     async mounted() {
         document.querySelector("#INPUT_files").addEventListener("change", async (ev) => {
             const files = ev.target.files;
-            if (!files || !files[0]) return alert('File upload not supported');
-            let chucksFiles = new Array();
-            console.log(files);
-            GuaraDesk.Network.UplodMax = files.length;
-            GuaraDesk.Network.Uplod = 0;
-            for (let cont = 0; cont < files.length; cont++) {
-                chucksFiles.push({
-                    name: files[cont].name,
-                    chucks: await readFile(files[cont])
-                });
-            }
-            temp = chucksFiles;
-            for (let cont = 0; cont < chucksFiles.length; cont++) {
-                console.log(`File N°${cont}`);
-                p2pt.send(GuaraDesk.Host.con, {
-                    opc: "writeFile",
-                    data: {
-                        name: chucksFiles[cont].name,
-                        dir: GuaraDesk.Host.dir,
-                        base64: chucksFiles[cont]['chucks']
-                    }
-                }).then(([peer, data]) => {
-                    GuaraDesk.pushAlert(data);
-                })
-                GuaraDesk.Network.Uplod = cont;
-            }
-            GuaraDesk.Network.Uplod++;
-
-            GuaraDesk.ls();
+            filesUpload(files);
         });
 
         //Desativar video que esteja rodando
@@ -527,6 +509,38 @@ var GuaraDesk = Vue.createApp({
     }
 }).mount('#mainAPP')
 
+
+async function filesUpload(files) {
+    if (!files || !files[0]) return alert('File upload not supported');
+    let chucksFiles = new Array();
+    console.log(files);
+    GuaraDesk.Network.UplodMax = files.length;
+    GuaraDesk.Network.Uplod = 0;
+    for (let cont = 0; cont < files.length; cont++) {
+        chucksFiles.push({
+            name: files[cont].name,
+            chucks: await readFile(files[cont])
+        });
+    }
+    temp = chucksFiles;
+    for (let cont = 0; cont < chucksFiles.length; cont++) {
+        console.log(`File N°${cont}`);
+        p2pt.send(GuaraDesk.Host.con, {
+            opc: "writeFile",
+            data: {
+                name: chucksFiles[cont].name,
+                dir: GuaraDesk.Host.dir,
+                base64: chucksFiles[cont]['chucks']
+            }
+        }).then(([peer, data]) => {
+            GuaraDesk.pushAlert(data);
+        })
+        GuaraDesk.Network.Uplod = cont;
+    }
+    GuaraDesk.Network.Uplod++;
+
+    GuaraDesk.ls();
+}
 
 function randMinMax(min, max) { // min and max included 
     return Math.floor(Math.random() * (max - min + 1) + min)
