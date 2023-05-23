@@ -184,11 +184,7 @@ p2pt.on('msg', async (peer, msg) => {
         }
     } else if (msg['opc'] == 'zipFD') {
         var zip7;
-        if (process.platform == "win32") {
-            zip7 = spawn('./bin/7zip/7za.exe', ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
-        } else if (process.arch == "arm64") {
-            zip7 = spawn('./bin/7zip/7za-arm64', ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
-        }
+        zip7 = spawn(sys.bin.zip, ['a', '-t7z', `${msg['data']['dir']}${msg['data']['zip7name']}.7z`].concat(msg['data']['files']));
         zip7.stdout.on('data', (data) => {
             //console.log(`stdout: ${data}`);
         });
@@ -260,11 +256,7 @@ async function cropVideo(File, data) {
         let output = File.split("/");
         output[output.length - 1] = "resiz_" + output[output.length - 1];
         output = output.join("/");
-        if (process.platform == "win32") {
-            ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-y','-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
-        } else if (process.arch == "arm64") {
-            ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-y','-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
-        }
+        ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-vf', `crop=${data.w}:${data.h}:${data.x}:${data.y}`, `${output}`]);
         ls.stdout.on('data', (data) => {
             //console.log(`stdout: ${data}`);
         });
@@ -285,7 +277,7 @@ async function cropVideo(File, data) {
 async function getThumbnail(File, qualityFull = false) {
     return await new Promise(async (resolv, reject) => {
         if (!fs.lstatSync(File).isDirectory()) {
-            if (fs.existsSync(`temp/${MD5(File)}`) && qualityFull==false) {
+            if (fs.existsSync(`temp/${MD5(File)}`) && qualityFull == false) {
                 resolv(fs.readFileSync(`temp/${MD5(File)}`, { encoding: 'utf8' }));
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
@@ -295,11 +287,7 @@ async function getThumbnail(File, qualityFull = false) {
                     resolv(base64Thumb);
                 } else if (['mp4'].includes(exten)) {
                     var ls;
-                    if (process.platform == "win32") {
-                        ls = spawn('./bin/ffmpeg-win64/bin/ffmpeg.exe', ['-y','-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
-                    } else if (process.arch == "arm64") {
-                        ls = spawn('./bin/ffmpeg-linuxarm64/bin/ffmpeg', ['-y','-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
-                    }
+                    ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
                     ls.stdout.on('data', (data) => {
                         //console.log(`stdout: ${data}`);
                     });
@@ -316,7 +304,7 @@ async function getThumbnail(File, qualityFull = false) {
                             //Image video full
                             if (qualityFull) {
                                 base64Thumb = fs.readFileSync(`./temp/${MD5(File)}.jpeg`, { encoding: "base64" });
-                                
+
                             } else {
                                 //Criar thumbnail e deletar imagem grande
                                 base64Thumb = await imgThumbnail(`./temp/${MD5(File)}.jpeg`, imgOptions);
@@ -384,9 +372,19 @@ var sys = {
     },
     log: (data) => {
         console.log(data);
+    },
+    bin: process.platform == "win32" ? {
+        //Windows 64
+        ffmpeg: './bin/ffmpeg-win64/bin/ffmpeg.exe',
+        zip: './bin/7zip/7za.exe'
+    } : process.arch == "arm64" ? {
+        //Linux arm64
+        ffmpeg: './bin/ffmpeg-linuxarm64/bin/ffmpeg',
+        zip: './bin/7zip/7za-arm64'
+    } : {
+
     }
 }
-
 p2pt.start();
 
 

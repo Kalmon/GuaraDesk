@@ -131,7 +131,7 @@ var mainVUE = Vue.createApp({
             } else {
                 setTimeout(() => {
                     delete mainVUE.ALERTS[idAlert]
-                }, 5000)
+                }, 60000)
             }
 
         },
