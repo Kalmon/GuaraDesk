@@ -90,17 +90,17 @@ p2pt.on('msg', async (peer, msg) => {
 async function getThumbnail(File, qualityFull = false) {
     return await new Promise(async (resolv, reject) => {
         if (!fs.lstatSync(File).isDirectory()) {
-            if (fs.existsSync(`temp/${MD5(File)}`) && qualityFull == false) {
-                resolv(fs.readFileSync(`temp/${MD5(File)}`, { encoding: 'utf8' }));
+            if (fs.existsSync(`temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`) && qualityFull == false) {
+                resolv(fs.readFileSync(`temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`, { encoding: 'utf8' }));
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
                 if (['png', 'jpeg', 'jpg'].includes(exten)) {
                     let base64Thumb = await imgThumbnail(File, imgOptions);
-                    fs.writeFileSync(`temp/${MD5(File)}`, base64Thumb);
+                    fs.writeFileSync(`temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`, base64Thumb);
                     resolv(base64Thumb);
                 } else if (['mp4'].includes(exten)) {
                     var ls;
-                    ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File)}.jpeg`]);
+                    ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}.jpeg`]);
                     ls.stdout.on('data', (data) => {
                         //console.log(`stdout: ${data}`);
                     });
@@ -116,15 +116,15 @@ async function getThumbnail(File, qualityFull = false) {
                             let base64Thumb;
                             //Image video full
                             if (qualityFull) {
-                                base64Thumb = fs.readFileSync(`./temp/${MD5(File)}.jpeg`, { encoding: "base64" });
+                                base64Thumb = fs.readFileSync(`./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}.jpeg`, { encoding: "base64" });
 
                             } else {
                                 //Criar thumbnail e deletar imagem grande
-                                base64Thumb = await imgThumbnail(`./temp/${MD5(File)}.jpeg`, imgOptions);
-                                fs.writeFileSync(`./temp/${MD5(File)}`, base64Thumb);
+                                base64Thumb = await imgThumbnail(`./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}.jpeg`, imgOptions);
+                                fs.writeFileSync(`./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`, base64Thumb);
                             }
                             try {
-                                fs.unlinkSync(`./temp/${MD5(File)}.jpeg`);
+                                fs.unlinkSync(`./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}.jpeg`);
                             } catch (error) {
                                 console.log(error);
                             }
@@ -174,7 +174,7 @@ var sys = {
                     }
                     now = new Date().getTime();
                     //console.log(stat.mtimeMs);
-                    endTime = new Date(stat.mtimeMs).getTime() + 28000000;
+                    endTime = new Date(stat.mtimeMs).getTime() + (2 * 85000000); //48hs
                     if (now > endTime) {
                         //console.log(file);
                         fs.unlinkSync(`./temp/${file}`);
@@ -220,9 +220,7 @@ aux['opc']['cropVideo'] = (Peer, Data) => {
     return new Promise(async (Resolv, Reject) => {
         try {
             let output = Data['file'].split("/");
-            output[output.length - 1] = "resiz_" + output[output.length - 1];
-            output = output.join("/");
-            ls = spawn(sys.bin.ffmpeg, ['-y', '-i', Data['file'], '-vf', `crop=${Data['size'].w}:${Data['size'].h}:${Data['size'].x}:${Data['size'].y}`, `${output}`]);
+            ls = spawn(sys.bin.ffmpeg, ['-y', '-i', Data['file'], '-vf', `crop=${Data['size'].w}:${Data['size'].h}:${Data['size'].x}:${Data['size'].y}`, `./temp/${output[output.length - 1]}`]);
             ls.stdout.on('data', (data) => {
                 //console.log(`stdout: ${data}`);
             });
@@ -235,6 +233,13 @@ aux['opc']['cropVideo'] = (Peer, Data) => {
             });
 
             ls.on('close', async (code) => {
+                try {
+                    console.log();
+                    fs.unlinkSync(output.join("/"));
+                    fs.renameSync(`./temp/${output[output.length - 1]}`, output.join("/"))
+                } catch (error) {
+                    Reject(error);
+                }
                 Resolv({
                     type: "success",
                     msg: "Successfully, video resized!"
@@ -350,9 +355,7 @@ aux['opc']['filesCopMov'] = (Peer, Data) => {
                     fs.copyFileSync(Data['files'][cont], `${Data['dir']}${fileDest}`);
                 } else {
                     //If Data['rename']==null? Então vamos mover : renomar
-                    fs.renameSync(Data['files'][cont], `${Data['dir']}${Data['rename'] == undefined ? fileDest : Data['rename']}`, function (err) {
-                        if (err) throw err
-                    })
+                    fs.renameSync(Data['files'][cont], `${Data['dir']}${Data['rename'] == undefined ? fileDest : Data['rename']}`)
                 }
             } catch (error) {
                 Reject(error);
