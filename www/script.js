@@ -272,9 +272,9 @@ var GuaraDesk = Vue.createApp({
             })
         },
         mouseMenu: (event) => {
-            event.preventDefault();
-            //Right click
+
             if (event.which == 3) {
+                event.preventDefault();
                 console.log(event.target);
                 if (!event.target.className.startsWith("menushow")) {
                     GuaraDesk.Mouse.filesSelect = [];
@@ -525,7 +525,7 @@ async function filesUpload(files) {
     temp = chucksFiles;
     for (let cont = 0; cont < chucksFiles.length; cont++) {
         console.log(`File N°${cont}`);
-        p2pt.send(GuaraDesk.Host.con, {
+        await p2pt.send(GuaraDesk.Host.con, {
             opc: "writeFile",
             data: {
                 name: chucksFiles[cont].name,
