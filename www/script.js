@@ -55,7 +55,10 @@ var GuaraDesk = Vue.createApp({
                 menuLeft: 0,
                 filesCopyMov: new Array(),
                 multDownload: new Array(),
-                Mais: {
+                maisEdit: {
+                    view: false
+                },
+                maisNovo: {
                     view: false
                 }
             },
@@ -299,6 +302,27 @@ var GuaraDesk = Vue.createApp({
             }
 
         },
+        newFile: () => {
+            bootbox.prompt({
+                title: 'Name of file?',
+                inputType: 'text',
+                callback: async function (result) {
+                    if (result == null || result.trim() == "") {
+                        return null;
+                    }
+                    // Create a new File object
+                    let myFile = new File([" "], result.trim(), {
+                        type: 'text/plain',
+                        lastModified: new Date(),
+                    });
+
+                    // Now let's create a DataTransfer to get a FileList
+                    let dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(myFile);
+                    filesUpload(dataTransfer.files);
+                }
+            });
+        },
         newFolder: () => {
             bootbox.prompt({
                 title: 'Nome da pasta?',
@@ -314,7 +338,7 @@ var GuaraDesk = Vue.createApp({
                             opc: "mkdir",
                             data: {
                                 dir: GuaraDesk.Host.dir,
-                                newFolder: result
+                                newFolder: result.trim()
                             }
                         }).then(([peer, data]) => {
                             GuaraDesk.Host.dir = data['dir'];
@@ -483,7 +507,7 @@ var GuaraDesk = Vue.createApp({
                         GuaraDesk.Host.con = peer;
                         GuaraDesk.screen = "ok";
                         GuaraDesk.Host.dir = localStorage.getItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`);
-                        GuaraDesk.ls(false);
+                        GuaraDesk.ls(GuaraDesk.Host.dir != null);
                     }
                 } else if (msg['opc'] == "alert") {
                     let id = randMinMax(1, 999999) + "_alert";
@@ -501,7 +525,7 @@ var GuaraDesk = Vue.createApp({
                 if (GuaraDesk.Host.con == null) {
                     p2pt.requestMorePeers();
                 }
-            }, 5000);
+            }, 30000);
             setInterval(() => {
                 GuaraDesk.Network.Down = 0;
             }, 1000);
@@ -522,10 +546,10 @@ async function filesUpload(files) {
             chucks: await readFile(files[cont])
         });
     }
-    temp = chucksFiles;
+    //temp = chucksFiles;
     for (let cont = 0; cont < chucksFiles.length; cont++) {
         console.log(`File N°${cont}`);
-        await p2pt.send(GuaraDesk.Host.con, {
+        p2pt.send(GuaraDesk.Host.con, {
             opc: "writeFile",
             data: {
                 name: chucksFiles[cont].name,

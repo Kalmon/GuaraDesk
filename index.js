@@ -369,7 +369,7 @@ aux['opc']['filesCopMov'] = (Peer, Data) => {
 aux['opc']['getFile'] = (Peer, Data) => {
     return new Promise((Resolv, Reject) => {
         try {
-            let reader = fs.readFileSync(Data, { encoding: "base64" });
+            let reader = fs.readFileSync(Data, { encoding: "utf8" });
             Resolv(reader);
         } catch (error) {
             Reject(error);

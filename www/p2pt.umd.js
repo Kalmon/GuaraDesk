@@ -9166,7 +9166,7 @@
          * instances. Otherwise, just set opts.config or opts.channelConfig
          * when constructing a Peer.
          */
-        Peer.config = {
+        Peer.config =  {
           iceServers: [
             {
               urls: 'stun:stun.l.google.com:19302'

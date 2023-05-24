@@ -114,8 +114,17 @@
             <div class="item" @click="uploadFile">
                 <i class="fa-solid fa-upload fa-xl"></i> Upload
             </div>
-            <div class="item" @click="newFolder">
-                <i class="fa-solid fa-folder-plus"></i> New Dir
+            <div class="item" @mouseover="Mouse.maisNovo.view = true" @mouseleave="Mouse.maisNovo.view = false">
+                <div :class="Mouse.maisNovo.view ? 'active border border-light' : ''" id="context-menu"
+                    style="right: -149px;">
+                    <div class="item" @click="newFolder">
+                        <i class="fa-regular fa-file-lines"></i> Folder
+                    </div>
+                    <div class="item" @click="newFile">
+                        <i class="fa-regular fa-file-lines"></i> File
+                    </div>
+                </div>
+                <i class="fa-solid fa-folder-plus"></i> New ->
             </div>
             <div class="item" v-if="Mouse.filesSelect.length==1" @click="renameDirFile">
                 <i class="fa-solid fa-pen-to-square"></i> Rename
@@ -150,15 +159,15 @@
                 </div>
             </template>
             <hr>
-            <div v-if="Mouse.filesSelect.length>0 && typeFile(Mouse.filesSelect[0])['type']=='file'" class="item" @mouseover="Mouse.Mais.view = true" @mouseleave="Mouse.Mais.view = false">
+            <div v-if="Mouse.filesSelect.length>0 && typeFile(Mouse.filesSelect[0])['type']=='file'" class="item" @mouseover="Mouse.maisEdit.view = true" @mouseleave="Mouse.maisEdit.view = false">
                 <!-- SUBMENU -->
-                <div :class="Mouse.Mais.view ? 'active border border-light' : ''" id="context-menu"
+                <div :class="Mouse.maisEdit.view ? 'active border border-light' : ''" id="context-menu"
                     style="right: -149px;">
                     <div class="item" @click="fileDitor">
                         <i class="fa-regular fa-file-lines"></i> Editor Texto
                     </div>
                 </div>
-                <i class="fa-solid fa-pen-to-square"></i> Abrir com
+                <i class="fa-solid fa-pen-to-square"></i> Abrir com ->
             </div>
             <div class="item" @click="ls">
                 <i class="fa fa-refresh"></i> Reload
@@ -241,7 +250,7 @@
         </div>
         <div v-if="Object.keys(ALERTS).length>0" class="fixed-top" style="left: auto;">
             <div v-for="(item, index) in Object.keys(ALERTS)" :time="destroyAlert(item)"
-                :class="`alert m-1 alert-${ALERTS[item].type} alert-dismissible fade show`" role="alert">
+                :class="`alert m-1 alert-${ALERTS[item].type} bg-${ALERTS[item].type} alert-dismissible text-white fade show`" role="alert">
                 <div v-html="ALERTS[item].msg"></div>
                 <button @click="destroyAlert(item,true)" type="button" class="btn-close" aria-label="Close"></button>
             </div>
