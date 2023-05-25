@@ -75,7 +75,7 @@ p2pt.on('msg', async (peer, msg) => {
     }
     try {
         console.log(msg['opc']);
-        return peer.respond(await aux['opc'][msg['opc']](peer, msg['data']));
+        aux['opc'][msg['opc']](peer, msg['data']).then(peer.respond)
     } catch (error) {
         p2pt.send(peer, {
             opc: "alert",
@@ -369,7 +369,7 @@ aux['opc']['filesCopMov'] = (Peer, Data) => {
 aux['opc']['getFile'] = (Peer, Data) => {
     return new Promise((Resolv, Reject) => {
         try {
-            let reader = fs.readFileSync(Data, { encoding: "utf8" });
+            let reader = fs.readFileSync(Data.file, { encoding: Data.encoding });
             Resolv(reader);
         } catch (error) {
             Reject(error);

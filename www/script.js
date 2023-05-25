@@ -117,10 +117,18 @@ var GuaraDesk = Vue.createApp({
         fileDitor: () => {
             p2pt.send(GuaraDesk.Host.con, {
                 opc: "getFile",
-                data: GuaraDesk.Mouse.filesSelect[0]
+                data: {
+                    file: GuaraDesk.Mouse.filesSelect[0],
+                    encoding: "utf8"
+                }
             }).then(([Peer, Data]) => {
                 console.log("arquivos recebidos!");
-                GuaraDesk.ModalEditText.base64 = atob(Data);
+                try {
+                    GuaraDesk.ModalEditText.base64 = (Data).toString();
+                } catch (error) {
+                    GuaraDesk.ModalEditText.base64 = Data;
+                }
+
                 $("#MODAL_textEdit").modal("show")
             })
             GuaraDesk.ModalEditText.title = (GuaraDesk.Mouse.filesSelect[0]).split("/").slice(-1)[0];
@@ -145,7 +153,7 @@ var GuaraDesk = Vue.createApp({
             }).then(([Peer, Data]) => {
                 GuaraDesk.pushAlert(Data);
             })
-            $("#MODAL_VidEdit").modal("close")
+            $("#MODAL_VidEdit").modal("hide")
         },
         videoEditResize: () => {
             p2pt.send(GuaraDesk.Host.con, {
@@ -446,7 +454,10 @@ var GuaraDesk = Vue.createApp({
                 //Arquivo
                 p2pt.send(GuaraDesk.Host.con, {
                     opc: "getFile",
-                    data: `${GuaraDesk.Host.dir}/${fileName.name}`
+                    data: {
+                        file: `${GuaraDesk.Host.dir}/${fileName.name}`,
+                        encoding: "base64"
+                    }
                 }).then(([Peer, Data]) => {
                     console.log("arquivos recebidos!");
                     let tyope = GuaraDesk.typeFile(
