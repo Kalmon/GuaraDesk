@@ -30,80 +30,118 @@
                 <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
             </div>
         </div>
-        <div v-else @mousedown="mouseMenu($event)" class="vw-100 vh-100">
-            <nav class="navbar fixed-top navbar-expand-lg bg-body-tertiary">
-                <div class="container-fluid">
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav w-100">
-                            <li class="nav-item" @click="backDir()">
-                                <a class="nav-link" aria-current="page">
-                                    <i class="fa-solid fa-arrow-left fa-xl"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item w-50">
-                                <input class="form-control me-2" type="text" v-model="Host.dir" v-on:keyup.enter="ls">
-                            </li>
-                            <li class="nav-item" @click="ls(false)">
-                                <a class="nav-link" aria-current="page" href="#">
-                                    <i class="fa-solid fa-house fa-xl"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item" @click="ls(true)">
-                                <a class="nav-link" aria-current="page" href="#">
-                                    <i class="fa-solid fa-rotate fa-xl"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item" @click="uploadFile">
-                                <a class="nav-link" aria-current="page" href="#">
-                                    <i class="fa-solid fa-upload fa-xl"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item" @click="newFolder">
-                                <a class="nav-link" aria-current="page" href="#">
-                                    <i class="fa-solid fa-folder-plus fa-xl"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item ms-auto">
-                                <a class="nav-link border rounded-2 me-3 ms-3">
-                                    <i class="fa-solid fa-cloud-arrow-down me-1" title="Download"></i>
-                                    <b class="me-2" title="Download">{{formatBytes(Network.Down)}}</b>
-                                    <template v-if="Network.UplodMax != Network.Uplod">
-                                        <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
-                                        <b class="me-2" title="Upload">{{Network.Uplod}} of
-                                            {{Network.UplodMax}}</b>
-                                    </template>
-                                </a>
+        <div v-else class="vh-100" @mousedown="mouseMenu($event)">
+            <div class="row p-0 m-0">
+                <div class="col-2 p-0 m-0 border-end vh-100 sidebar-wrapper">
+                    <div class="sidebar-header pb-1 pt-1">
+                        <div class="user-pic">
+                            <img class="img-responsive img-rounded" src="https://img.icons8.com/dusk/64/server.png"
+                                alt="User picture">
+                        </div>
+                        <div class="user-info">
+                            <span class="user-name">Jhon
+                                <strong>Smith</strong>
+                            </span>
+                            <span class="user-role">Administrator</span>
+                            <span class="user-status">
+                                <i class="fa fa-circle"></i>
+                                <span>Online</span>
+                            </span>
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush" id="menuLeft">
+                        <li class="list-group-item d-flex justify-content-between align-items-start p-0">
+                            <div class="ms-2 me-auto">
+                                Favoritos
+                            </div>
+                            <hr />
+                        </li>
+                        <ul class="list-group list-group-flush p-1 pt-0 mt-0 pe-0">
+                            <li v-for="(iten,index) in menuLeft.fav" :title="iten.name" class="list-group-item d-flex justify-content-between align-items-center">
+                                <img :src="typeFile('',true)['icon']" @click="openFD(iten,true)">
+                                <span class="text-truncate" @click="openFD(iten,true)">{{iten.name.split('/')[iten.name.split('/').length-1]}}</span>
+                                <span class="badge bg-warning rounded-pill" @click="favAddRemov(iten)">
+                                    <i class="fa-solid fa-star"></i>
+                                </span>
                             </li>
                         </ul>
-
-                    </div>
+                    </ul>
                 </div>
-            </nav>
-            <div class="container">
-                <div class="row p-3" id="files">
-                    <div v-for="(item, index) in Host.files" class="col-4 col-md-2 text-center">
-                        <div
-                            :class="Mouse.filesSelect.includes(`${Host.dir}${item.name}`)  ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
-                            <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
-                                class="position-relative" v-on:dblclick="openFD(item)"
-                                @click="mouseFDselect(item.name)">
-                                <img :src="`data:image/png;base64, ${item.thumbnail}`" class="menushow w-100">
-                                <img :src="typeFile(item.name,item.isDir)['icon']"
-                                    class="menushow position-absolute bottom-0 end-0 img-icon">
-                            </div>
-                            <div v-else>
-                                <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
-                                    @click="mouseFDselect(item.name)" class="menushow">
+                <div class="col-10 p-0 m-0">
+                    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+                        <div class="container-fluid">
+                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                                aria-expanded="false" aria-label="Toggle navigation">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <ul class="navbar-nav w-100">
+                                    <li class="nav-item" @click="backDir()">
+                                        <a class="nav-link" aria-current="page">
+                                            <i class="fa-solid fa-arrow-left fa-xl"></i>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item w-50">
+                                        <input class="form-control me-2" type="text" v-model="Host.dir"
+                                            v-on:keyup.enter="ls">
+                                    </li>
+                                    <li class="nav-item" @click="ls(false)">
+                                        <a class="nav-link" aria-current="page" href="#">
+                                            <i class="fa-solid fa-house fa-xl"></i>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item" @click="ls(true)">
+                                        <a class="nav-link" aria-current="page" href="#">
+                                            <i class="fa-solid fa-rotate fa-xl"></i>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item" @click="uploadFile">
+                                        <a class="nav-link" aria-current="page" href="#">
+                                            <i class="fa-solid fa-upload fa-xl"></i>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item" @click="newFolder">
+                                        <a class="nav-link" aria-current="page" href="#">
+                                            <i class="fa-solid fa-folder-plus fa-xl"></i>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item ms-auto">
+                                        <a class="nav-link border rounded-2 me-3 ms-3">
+                                            <i class="fa-solid fa-cloud-arrow-down me-1" title="Download"></i>
+                                            <b class="me-2" title="Download">{{formatBytes(Network.Down)}}</b>
+                                            <template v-if="Network.UplodMax != Network.Uplod">
+                                                <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
+                                                <b class="me-2" title="Upload">{{Network.Uplod}} of
+                                                    {{Network.UplodMax}}</b>
+                                            </template>
+                                        </a>
+                                    </li>
+                                </ul>
+
                             </div>
                         </div>
+                    </nav>
+                    <div class="row p-3 h-100 w-100" id="files">
+                        <div v-for="(item, index) in Host.files" class="col-4 col-md-2 text-center">
+                            <div
+                                :class="mouseFDselect(item,false) ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
+                                <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
+                                    class="position-relative" v-on:dblclick="openFD(item)"
+                                    @click="mouseFDselect(item)">
+                                    <img :src="`data:image/png;base64, ${item.thumbnail}`" class="menushow w-100">
+                                    <img :src="typeFile(item.name,item.isDir)['icon']"
+                                        class="menushow position-absolute bottom-0 end-0 img-icon">
+                                </div>
+                                <div v-else>
+                                    <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
+                                        @click="mouseFDselect(item)" class="menushow">
+                                </div>
+                            </div>
 
 
-                        <p class="menushow text-truncate" :title="item.name">{{item.name}}</p>
+                            <p class="menushow text-truncate" :title="item.name">{{item.name}}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,12 +167,19 @@
             <div class="item" v-if="Mouse.filesSelect.length==1" @click="renameDirFile">
                 <i class="fa-solid fa-pen-to-square"></i> Rename
             </div>
-            <template v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0])['type']=='video'">
+            
+            <div  v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0].name)['type']=='pasta'" class="item" @click="favAddRemov(Mouse.filesSelect[0])">
+                <i class="fa-solid fa-star"></i> {{menuLeft.fav.includes(Mouse.filesSelect[0]) ? 'Remove': 'Add'}}
+            </div>
+
+            <!-- Only:Videos -->
+            <template v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0].name)['type']=='video'">
                 <div class="item" @click="videoEditResize">
                     <i class="fa-solid fa-pen-to-square"></i> Resize
                 </div>
             </template>
 
+            <!-- Only:select -->
             <template v-if="Mouse.filesSelect.length>0">
                 <div class="item" @click="Mouse.filesCopyMov=Mouse.filesSelect;Mouse.filesSelect=[];">
                     <i class="fa-solid fa-copy"></i> Copy/Move
@@ -146,6 +191,7 @@
                     <i class="fa-solid fa-trash"></i> Delet
                 </div>
             </template>
+
             <template v-if="Mouse.filesCopyMov.length>0">
                 <hr>
                 <div class="item" @click="filesCopMov(true)">
@@ -159,7 +205,8 @@
                 </div>
             </template>
             <hr>
-            <div v-if="Mouse.filesSelect.length>0 && typeFile(Mouse.filesSelect[0])['type']=='file'" class="item" @mouseover="Mouse.maisEdit.view = true" @mouseleave="Mouse.maisEdit.view = false">
+            <div v-if="Mouse.filesSelect.length>0 && typeFile(Mouse.filesSelect[0].name)['type']=='file'" class="item"
+                @mouseover="Mouse.maisEdit.view = true" @mouseleave="Mouse.maisEdit.view = false">
                 <!-- SUBMENU -->
                 <div :class="Mouse.maisEdit.view ? 'active border border-light' : ''" id="context-menu"
                     style="right: -149px;">
@@ -181,7 +228,8 @@
         </div>
 
         <!-- Modal: Editor de texto -->
-        <div class="modal fade" id="MODAL_textEdit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal fade" id="MODAL_textEdit" tabindex="-1" aria-labelledby="exampleModalLabel"
+            aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -193,7 +241,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>
-                        <button @click="ModalEditText.confirm" type="button" class="btn btn-primary col" data-bs-dismiss="modal">Save</button>
+                        <button @click="ModalEditText.confirm" type="button" class="btn btn-primary col"
+                            data-bs-dismiss="modal">Save</button>
                     </div>
                 </div>
             </div>
@@ -227,13 +276,14 @@
                         <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div v-if="ModalView.vidImg" class="max-vh-65">
-                        <img v-if="typeFile(ModalView.name)['type']=='img'" class="w-100" id="MODAL_img" :src="ModalView.src">
+                        <img v-if="typeFile(ModalView.name)['type']=='img'" class="w-100" id="MODAL_img"
+                            :src="ModalView.src">
                         <video v-else-if="typeFile(ModalView.name)['type']=='video'" class="max-vh-50 w-100"
                             :src="ModalView.src" id="MODAL_video" width="100%" controls>
 
                         </video>
-                        <embed v-else-if="typeFile(ModalView.name)['type']=='pdf'" id="MODAL_pdf" class="min-vh-50 w-100"
-                            type="application/pdf" :src="ModalView.src">
+                        <embed v-else-if="typeFile(ModalView.name)['type']=='pdf'" id="MODAL_pdf"
+                            class="min-vh-50 w-100" type="application/pdf" :src="ModalView.src">
                         <audio v-else-if="typeFile(ModalView.name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
                             :src="ModalView.src" controls>
                         </audio>
@@ -250,20 +300,22 @@
         </div>
         <div v-if="Object.keys(ALERTS).length>0" class="fixed-top" style="left: auto;">
             <div v-for="(item, index) in Object.keys(ALERTS)" :time="destroyAlert(item)"
-                :class="`alert m-1 alert-${ALERTS[item].type} bg-${ALERTS[item].type} alert-dismissible text-white fade show`" role="alert">
+                :class="`alert m-1 alert-${ALERTS[item].type} bg-${ALERTS[item].type} alert-dismissible text-white fade show`"
+                role="alert">
                 <div v-html="ALERTS[item].msg"></div>
                 <button @click="destroyAlert(item,true)" type="button" class="btn-close" aria-label="Close"></button>
             </div>
         </div>
     </div>
 
-    <script type="text/javascript" src="www/p2pt.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/bootboxjs/bootbox@6.0.0/dist/bootbox.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/fengyuanchen/cropperjs@1.5.13/dist/cropper.js"></script>
+    <script src="www/p2pt.umd.js"></script>
     <script src="www/script.js"></script>
 
     <style>

@@ -4,6 +4,8 @@ const process = require('process');
 const imgThumbnail = require('image-thumbnail');
 let imgOptions = { percentage: 25, responseType: 'base64' }
 const { spawn } = require('node:child_process');
+const { rejects } = require("assert");
+
 
 
 var aux = new Object();
@@ -60,7 +62,6 @@ p2pt.on('peerconnect', (peer) => {
         data: true
     });
 })
-
 // If message received from peer
 p2pt.on('msg', async (peer, msg) => {
     if (typeof aux['opc'][msg['opc']] === 'undefined') {
@@ -86,6 +87,9 @@ p2pt.on('msg', async (peer, msg) => {
         });
     }
 });
+p2pt.start();
+
+
 
 async function getThumbnail(File, qualityFull = false) {
     return await new Promise(async (resolv, reject) => {
@@ -95,9 +99,14 @@ async function getThumbnail(File, qualityFull = false) {
             } else {
                 let exten = File.split(".")[File.split(".").length - 1]
                 if (['png', 'jpeg', 'jpg'].includes(exten)) {
-                    let base64Thumb = await imgThumbnail(File, imgOptions);
-                    fs.writeFileSync(`temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`, base64Thumb);
-                    resolv(base64Thumb);
+                    try {
+                        let base64Thumb = await imgThumbnail(File, imgOptions);
+                        fs.writeFileSync(`temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}`, base64Thumb);
+                        resolv(base64Thumb);
+                    } catch (error) {
+                        resolv(null);
+                    }
+
                 } else if (['mp4'].includes(exten)) {
                     var ls;
                     ls = spawn(sys.bin.ffmpeg, ['-y', '-i', File, '-ss', '00:00:01.000', '-vframes', '1', `./temp/${MD5(File + "_" + fs.statSync(File).mtimeMs)}.jpeg`]);
@@ -145,7 +154,7 @@ async function getThumbnail(File, qualityFull = false) {
 
 }
 
-log('P2PT started. My peer id : ' + p2pt._peerId)
+
 
 var sys = {
     errLog: (Err) => {
@@ -198,11 +207,11 @@ var sys = {
 
     }
 }
-p2pt.start();
+
 
 
 setInterval(() => {
-    //p2pt.requestMorePeers();
+
 }, 5000);
 
 
@@ -370,7 +379,7 @@ aux['opc']['getFile'] = (Peer, Data) => {
     return new Promise((Resolv, Reject) => {
         try {
             let reader = fs.readFileSync(Data.file, { encoding: Data.encoding });
-            Resolv(reader);
+            Resolv({ file: reader });
         } catch (error) {
             Reject(error);
         }
@@ -386,7 +395,7 @@ aux['opc']['mkdir'] = async (Peer, Data) => {
             if (!fs.existsSync(`${Data['dir']}${Data['newFolder']}`)) {
                 fs.mkdirSync(`${Data['dir']}${Data['newFolder']}`);
             } else {
-                p2pt.send(Peer, {
+                Reject({
                     opc: "alert",
                     data: {
                         type: "warning",
