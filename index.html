@@ -57,14 +57,19 @@
                             <hr />
                         </li>
                         <ul class="list-group list-group-flush p-1 pt-0 mt-0 pe-0">
-                            <li v-for="(iten,index) in menuLeft.fav" :title="iten.name" class="list-group-item d-flex justify-content-between align-items-center">
+                            <li v-for="(iten,index) in menuLeft.fav" :title="iten.name"
+                                class="list-group-item d-flex justify-content-between align-items-center">
                                 <img :src="typeFile('',true)['icon']" @click="openFD(iten,true)">
-                                <span class="text-truncate" @click="openFD(iten,true)">{{iten.name.split('/')[iten.name.split('/').length-1]}}</span>
+                                <span class="text-truncate"
+                                    @click="openFD(iten,true)">{{iten.name.split('/')[iten.name.split('/').length-1]}}</span>
                                 <span class="badge bg-warning rounded-pill" @click="favAddRemov(iten)">
                                     <i class="fa-solid fa-star"></i>
                                 </span>
                             </li>
                         </ul>
+                        <div class="position-absolute b-0 p-2" style="bottom: 0px;">
+                            <button type="button" class="btn btn-primary w-100" @click="displayGet">DISPLAY</button>
+                        </div>
                     </ul>
                 </div>
                 <div class="col-10 p-0 m-0">
@@ -127,8 +132,7 @@
                             <div
                                 :class="mouseFDselect(item,false) ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
                                 <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
-                                    class="position-relative" v-on:dblclick="openFD(item)"
-                                    @click="mouseFDselect(item)">
+                                    class="position-relative" v-on:dblclick="openFD(item)" @click="mouseFDselect(item)">
                                     <img :src="`data:image/png;base64, ${item.thumbnail}`" class="menushow w-100">
                                     <img :src="typeFile(item.name,item.isDir)['icon']"
                                         class="menushow position-absolute bottom-0 end-0 img-icon">
@@ -167,8 +171,9 @@
             <div class="item" v-if="Mouse.filesSelect.length==1" @click="renameDirFile">
                 <i class="fa-solid fa-pen-to-square"></i> Rename
             </div>
-            
-            <div  v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0].name)['type']=='pasta'" class="item" @click="favAddRemov(Mouse.filesSelect[0])">
+
+            <div v-if="Mouse.filesSelect.length==1 && typeFile(Mouse.filesSelect[0].name)['type']=='pasta'" class="item"
+                @click="favAddRemov(Mouse.filesSelect[0])">
                 <i class="fa-solid fa-star"></i> {{menuLeft.fav.includes(Mouse.filesSelect[0]) ? 'Remove': 'Add'}}
             </div>
 
@@ -224,6 +229,15 @@
             </div>
             <div class="item" @click="exit">
                 <i class="fa fa-times"></i> Exit
+            </div>
+        </div>
+
+        <!-- MODAL INTERFACE -->
+        <div class="modal fade" id="MODAL_display" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <img :src="ModalDisplay.img" class="w-100" srcset="">
+                </div>
             </div>
         </div>
 

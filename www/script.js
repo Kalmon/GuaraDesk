@@ -49,6 +49,9 @@ var GuaraDesk = Vue.createApp({
                     filesUpload(dataTransfer.files)
                 }
             },
+            ModalDisplay: {
+                img: 'https://www.lifewire.com/thmb/RYYY7FRD7qz__Nir8Nf_1wnZlz0=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/009-how-to-create-a-desktop-shortcut-on-windows-bf4f5510ddab4da297d068e1b04fcfde.jpg'
+            },
 
             // Menu mouse
             Mouse: {
@@ -120,6 +123,20 @@ var GuaraDesk = Vue.createApp({
 
     },
     methods: {
+        displayGet: async () => {
+            $("#MODAL_display").modal("show");
+            await sleep(500)
+            while ($("#MODAL_display").is(":visible")) {
+                await GuaraDesk.send({
+                    opc: "interface",
+                    data: {
+                        contr: 'getDisplay'
+                    }
+                }).then((Data) => {
+                    GuaraDesk.ModalDisplay.img = "data:image/jpg;base64, "+Data;
+                })
+            }
+        },
         favAddRemov: (dir) => {
             checkFav()
             localStorage.setItem(GuaraDesk.Host.md5 + '_fav', JSON.stringify(GuaraDesk.menuLeft.fav));

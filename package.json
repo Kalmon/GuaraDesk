@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@nut-tree/nut-js": "^3.1.2-next.20230428170832",
     "image-thumbnail": "^1.0.15",
     "p2pt": "github:Kalmon/tiny-p2pt"
   }
