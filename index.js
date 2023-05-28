@@ -255,7 +255,7 @@ aux['opc']['cropVideo'] = (Peer, Data) => {
 
             ls.on('close', async (code) => {
                 try {
-                    console.log();
+                    console.log("Finalizado CROP...");
                     fs.unlinkSync(output.join("/"));
                     fs.renameSync(`./temp/${output[output.length - 1]}`, output.join("/"))
                 } catch (error) {

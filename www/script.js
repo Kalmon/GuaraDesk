@@ -173,6 +173,7 @@ var GuaraDesk = Vue.createApp({
             GuaraDesk.Mouse.filesSelect = [];
         },
         pushAlert: (alert) => {
+            document.getElementById("AUDIO_alert").play();
             let id = randMinMax(1, 999999) + "_alert";
             GuaraDesk.ALERTS[id] = alert;
         },

@@ -114,3 +114,9 @@ body {
 #menuLeft img{
     height: 25px;
 }
+#files{
+    overflow: auto;
+}
+.h-90{
+    height: 90%;
+}

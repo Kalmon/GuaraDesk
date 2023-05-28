@@ -72,7 +72,7 @@
                         </div>
                     </ul>
                 </div>
-                <div class="col-10 p-0 m-0">
+                <div class="col-10 p-0 m-0 vh-100">
                     <nav class="navbar navbar-expand-lg bg-body-tertiary">
                         <div class="container-fluid">
                             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -127,7 +127,7 @@
                             </div>
                         </div>
                     </nav>
-                    <div class="row p-3 h-100 w-100" id="files">
+                    <div class="row p-3 h-90 w-100" id="files">
                         <div v-for="(item, index) in Host.files" class="col-4 col-md-2 text-center">
                             <div
                                 :class="mouseFDselect(item,false) ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
@@ -309,9 +309,7 @@
                 </div>
             </div>
         </div>
-        <div class="hide">
-            <input id="INPUT_files" type="file" multiple>
-        </div>
+
         <div v-if="Object.keys(ALERTS).length>0" class="fixed-top" style="left: auto;">
             <div v-for="(item, index) in Object.keys(ALERTS)" :time="destroyAlert(item)"
                 :class="`alert m-1 alert-${ALERTS[item].type} bg-${ALERTS[item].type} alert-dismissible text-white fade show`"
@@ -319,6 +317,12 @@
                 <div v-html="ALERTS[item].msg"></div>
                 <button @click="destroyAlert(item,true)" type="button" class="btn-close" aria-label="Close"></button>
             </div>
+        </div>
+        <div class="hide">
+            <input id="INPUT_files" type="file" multiple>
+            <audio id="AUDIO_alert">
+                <source src="www/alert.wav" type="audio/wav">
+            </audio>
         </div>
     </div>
 

@@ -10194,9 +10194,11 @@
               }
               //Before 1 min no response, delet callback
               setTimeout(() => {
-                delete this.responseWaiting[peer.id][data.id];
-                resolve(null);
-              }, 60000);
+                if(typeof this.responseWaiting[peer.id][data.id] != "undefined"){
+                  delete this.responseWaiting[peer.id][data.id];
+                  resolve(null);
+                }
+              }, 120000); //2Min auto destroy callback
               debug('sent a message to ' + peer.id)
               function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
