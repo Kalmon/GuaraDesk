@@ -616,7 +616,7 @@ async function filesUpload(files) {
     //temp = chucksFiles;
     for (let cont = 0; cont < chucksFiles.length; cont++) {
         console.log(`File N°${cont}`);
-        GuaraDesk.send({
+        await GuaraDesk.send({
             opc: "writeFile",
             data: {
                 name: chucksFiles[cont].name,
