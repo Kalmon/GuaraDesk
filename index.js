@@ -224,17 +224,6 @@ aux['opc']['cropVideo'] = (Peer,Data)=>{
     })
 }
 */
-aux['opc']['interface'] = (Peer, Data) => {
-    return new Promise(async (Resolv, Reject) => {
-        if (Data['contr'] == "getDisplay") {
-            let id = randMinMax(9, 999999) + "_screen.jpg";
-            let result = await nutjs.screen.capture(id,".jpg", './temp/')
-            id = fs.readFileSync(result, { encoding: 'base64' });
-            fs.unlinkSync(result);
-            Resolv(id);
-        }
-    })
-}
 
 //Corta video
 aux['opc']['cropVideo'] = (Peer, Data) => {

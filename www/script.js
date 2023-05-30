@@ -262,7 +262,7 @@ var GuaraDesk = Vue.createApp({
                     GuaraDesk.send({
                         opc: "filesCopMov",
                         data: {
-                            files: GuaraDesk.Mouse.filesSelect,
+                            files: GuaraDesk.Mouse.filesSelect.map(el => el['name']),
                             dir: GuaraDesk.Host.dir,
                             rename: result,
                             type: false //Move == rename
