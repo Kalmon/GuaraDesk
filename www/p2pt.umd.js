@@ -9981,7 +9981,7 @@
          * Chose 16KB considering Chromium
          * https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels#Concerns_with_large_messages
          */
-        const MAX_MESSAGE_LENGTH = (16000)*10
+        const MAX_MESSAGE_LENGTH = 16000
 
         class P2PT extends EventEmitter {
           /**
