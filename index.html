@@ -20,7 +20,7 @@
     <title>GuaraDesk - P2P Remote</title>
 </head>
 
-<body oncontextmenu="return false;">
+<body >
     <div id="mainAPP">
         <div v-if="screen=='key'" class="d-flex justify-content-md-center align-items-center vh-100">
             <div class="input-group mb-3 w-50">
@@ -30,7 +30,7 @@
                 <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
             </div>
         </div>
-        <div v-else class="vh-100" @mousedown="mouseMenu($event)">
+        <div oncontextmenu="return false;" v-else class="vh-100" @mousedown="mouseMenu($event)" >
             <div class="row p-0 m-0">
                 <div class="col-2 p-0 m-0 border-end vh-100 sidebar-wrapper">
                     <div class="sidebar-header pb-1 pt-1">
@@ -117,8 +117,7 @@
                                             <b class="me-2" title="Download">{{formatBytes(Network.Down)}}</b>
                                             <template v-if="Network.UplodMax != Network.Uplod">
                                                 <i class="fa-solid fa-cloud-arrow-up me-1" title="Upload"></i>
-                                                <b class="me-2" title="Upload">{{Network.Uplod}} of
-                                                    {{Network.UplodMax}}</b>
+                                                <b class="me-2" title="Upload">{{formatBytes(Network.Uplod)}}</b>
                                             </template>
                                         </a>
                                     </li>
@@ -131,16 +130,17 @@
                         <div v-for="(item, index) in Host.files" class="col-4 col-md-2 text-center">
                             <div
                                 :class="mouseFDselect(item,false) ? `menushow card card-body border-0 bg-primary bg-opacity-25` : `menushow card card-body border-0`">
-                                <div v-if="['img','video'].includes(typeFile(item.name,item.isDir)['type'])"
-                                    class="position-relative" v-on:dblclick="openFD(item)" @click="mouseFDselect(item)">
+                                <div v-if="item.thumbnail == null">
+                                    <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
+                                        @click="mouseFDselect(item)" class="menushow">
+                                </div>
+                                <div v-else class="position-relative" v-on:dblclick="openFD(item)"
+                                    @click="mouseFDselect(item)">
                                     <img :src="`data:image/png;base64, ${item.thumbnail}`" class="menushow w-100">
                                     <img :src="typeFile(item.name,item.isDir)['icon']"
                                         class="menushow position-absolute bottom-0 end-0 img-icon">
                                 </div>
-                                <div v-else>
-                                    <img :src="typeFile(item.name,item.isDir)['icon']" v-on:dblclick="openFD(item)"
-                                        @click="mouseFDselect(item)" class="menushow">
-                                </div>
+
                             </div>
 
 

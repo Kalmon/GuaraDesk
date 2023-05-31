@@ -6,6 +6,11 @@ let imgOptions = { percentage: 25, responseType: 'base64' }
 const { spawn } = require('node:child_process');
 const { rejects } = require("assert");
 var nutjs = require("@nut-tree/nut-js");
+//const dragDrop = require('drag-drop')
+var WebTorrent = require('webtorrent-hybrid')
+var trackers = JSON.parse(fs.readFileSync("trackers.json", { encoding: "utf8" }));
+const client = new WebTorrent()
+
 
 
 
@@ -13,6 +18,7 @@ var aux = new Object();
 aux['chunks'] = new Object();
 aux['MAX_DIFF_KEY'] = 3;
 aux['opc'] = new Object();
+aux['webTorrent'] = new Object();
 
 
 //Config ID and password
@@ -206,14 +212,35 @@ var sys = {
         zip: './bin/7zip/7za-arm64'
     } : {
 
+    },
+    crontab: {
+        destTorrent: {
+            time: 120,
+            cont: 0,
+            func: () => {
+                client.torrents.map(torrent => {
+                    if (torrent.uploadSpeed == 0 && torrent.downloadSpeed == 0) {
+                        console.log("Destroy torrent: " + torrent.infoHash);
+                        torrent.destroy();
+                    }
+                })
+            }
+        }
     }
 }
 
 
 
 setInterval(() => {
-
-}, 5000);
+    Object.keys(sys.crontab).map(job => {
+        if (sys.crontab[job].time == sys.crontab[job].cont) {
+            sys.crontab[job].cont = 0;
+            sys.crontab[job].func();
+        } else {
+            sys.crontab[job].cont++;
+        }
+    })
+}, 1000);
 
 
 // -------------------  FUNCTIONS SERVER
@@ -224,6 +251,43 @@ aux['opc']['cropVideo'] = (Peer,Data)=>{
     })
 }
 */
+aux['opc']['webtorrent'] = (Peer, Data) => {
+    return new Promise(async (Resolv, Reject) => {
+        if (Data.type) {
+            client.add(Data.infoHash, { path: Data.dir, announce: trackers }, function (torrent) {
+                aux['webTorrent'][torrent.infoHash] = {
+                    torrent: torrent,
+                    peer: Peer
+                };
+                torrent.on('done', function () {
+                    p2pt.send(aux['webTorrent'][torrent.infoHash].peer, {
+                        opc: "alert",
+                        data: {
+                            type: "success",
+                            msg: "Download completo!"
+                        }
+                    });
+                    delete aux['webTorrent'][torrent.infoHash];
+                    torrent.destroy();
+                })
+            })
+            Resolv({
+                type: "success",
+                msg: "Upload iniciado..."
+            });
+        } else {
+            client.seed(Data.files, function (torrent) {
+                aux['webTorrent'][torrent.infoHash] = {
+                    torrent: torrent,
+                    peer: Peer
+                };
+                Resolv({
+                    infoHash: torrent.infoHash,
+                })
+            })
+        }
+    })
+}
 
 //Corta video
 aux['opc']['cropVideo'] = (Peer, Data) => {

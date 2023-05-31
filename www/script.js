@@ -1,9 +1,10 @@
+var WebTorrent = require('webtorrent-hybrid');
+const client = new WebTorrent()
 var p2pt, temp = new Array();
 var aux = new Object();
 aux['chunks'] = new Object();
 aux['cropper'] = null;
 aux['promises'] = new Object();
-
 var GuaraDesk = Vue.createApp({
     data() {
         return {
@@ -14,7 +15,10 @@ var GuaraDesk = Vue.createApp({
                 con: null,
                 dir: "",
                 files: new Array(),
-                md5: null
+                md5: null,
+                sysLogs: {
+
+                }
             },
 
             //Login
@@ -133,7 +137,7 @@ var GuaraDesk = Vue.createApp({
                         contr: 'getDisplay'
                     }
                 }).then((Data) => {
-                    GuaraDesk.ModalDisplay.img = "data:image/jpg;base64, "+Data;
+                    GuaraDesk.ModalDisplay.img = "data:image/jpg;base64, " + Data;
                 })
             }
         },
@@ -427,7 +431,7 @@ var GuaraDesk = Vue.createApp({
 
         },
         typeFile: (fileName, forceFile = null) => {
-            if (fileName.includes(".") || (forceFile != null && forceFile == false)) {
+            if (fileName.includes(".") && forceFile != null && forceFile == false) {
                 //Tem extenção
                 fileName = fileName.split(".");
                 fileName = fileName[fileName.length - 1];
@@ -589,7 +593,14 @@ var GuaraDesk = Vue.createApp({
             });
             p2pt.start();
             setInterval(() => {
-                GuaraDesk.Network.Down = 0;
+                Object.keys(sys.crontab).map(job => {
+                    if (sys.crontab[job].time == sys.crontab[job].cont) {
+                        sys.crontab[job].cont = 0;
+                        sys.crontab[job].func();                        
+                    } else {
+                        sys.crontab[job].cont++;
+                    }
+                })
             }, 1000);
         },
         send: async (Data) => {
@@ -598,12 +609,60 @@ var GuaraDesk = Vue.createApp({
                     Resolv(Data);
                 })
             });
+        },
+        sysCront: async () => {
+
         }
     }
 }).mount('#mainAPP')
 
+var sys = {
+    crontab: {
+        downUplo: {
+            time: 1,
+            cont: 0,
+            func: () => {
+                GuaraDesk.Network.Uplod = client.uploadSpeed;
+                GuaraDesk.Network.Down = client.downloadSpeed;
+            }
+        },
+        destTorrent: {
+            time: 120,
+            cont: 0,
+            func: () => {
+                client.torrents.map(torrent => {
+                    console.log(`${torrent.infoHash} -> D:${torrent.uploadSpeed} U:${torrent.downloadSpeed}`);
+                    if (torrent.uploadSpeed == 0 && torrent.downloadSpeed == 0) {
+                        console.log("Destroy torrent: "+torrent.infoHash);
+                        torrent.destroy();
+                    }
+                })
+            }
+        }
+    }
+}
+
 async function filesUpload(files) {
     if (!files || !files[0]) return alert('File upload not supported');
+    let myFiles = new Array();
+    for(let cont=0;cont<files.length;cont++){
+        myFiles.push(files[cont].path);
+    }
+
+    client.seed(myFiles, function (torrent) {
+        console.log('Client is seeding ' + torrent.infoHash);
+        GuaraDesk.send({
+            opc: "webtorrent",
+            data: {
+                type: true, //True = adicionar
+                infoHash: torrent.infoHash,
+                dir: GuaraDesk.Host.dir
+            }
+        }).then((Data) => {
+            GuaraDesk.pushAlert(Data);
+        })
+    })
+    return null;
     let chucksFiles = new Array();
     console.log(files);
     GuaraDesk.Network.UplodMax = files.length;

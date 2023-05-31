@@ -1,7 +1,12 @@
 {
+  "name": "GuaraDesk",
+  "main": "index.html",
   "dependencies": {
     "@nut-tree/nut-js": "^3.1.2-next.20230428170832",
+    "drag-drop": "^7.2.0",
     "image-thumbnail": "^1.0.15",
-    "p2pt": "github:Kalmon/tiny-p2pt"
+    "p2pt": "github:Kalmon/tiny-p2pt",
+    "webtorrent": "^2.0.23",
+    "webtorrent-hybrid": "^4.1.3"
   }
 }
