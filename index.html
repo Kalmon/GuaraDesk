@@ -20,17 +20,17 @@
     <title>GuaraDesk - P2P Remote</title>
 </head>
 
-<body >
+<body oncontextmenu="return false;">
     <div id="mainAPP">
         <div v-if="screen=='key'" class="d-flex justify-content-md-center align-items-center vh-100">
-            <div class="input-group mb-3 w-50">
+            <div class="input-group mb-3 w-5f0">
                 <input type="text" class="form-control" v-model="INPUT_key">
                 <span class="input-group-text" id="basic-addon1">#</span>
                 <input type="text" class="form-control" v-model="INPUT_password">
                 <button class="btn btn-outline-secondary" type="button" @click="connectP2PT">Connect</button>
             </div>
         </div>
-        <div oncontextmenu="return false;" v-else class="vh-100" @mousedown="mouseMenu($event)" >
+        <div id="okay"  v-else class="vh-100" @mousedown="mouseMenu($event)" >
             <div class="row p-0 m-0">
                 <div class="col-2 p-0 m-0 border-end vh-100 sidebar-wrapper">
                     <div class="sidebar-header pb-1 pt-1">
@@ -289,18 +289,8 @@
                         <h1 class="modal-title fs-5 text-break" id="exampleModalLabel">{{ModalView.name}}</h1>
                         <button type="button" class="btn-close m-2" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div v-if="ModalView.vidImg" class="max-vh-65">
-                        <img v-if="typeFile(ModalView.name)['type']=='img'" class="w-100" id="MODAL_img"
-                            :src="ModalView.src">
-                        <video v-else-if="typeFile(ModalView.name)['type']=='video'" class="max-vh-50 w-100"
-                            :src="ModalView.src" id="MODAL_video" width="100%" controls>
+                    <div id="MODAL_vidImgView" class="max-vh-65">
 
-                        </video>
-                        <embed v-else-if="typeFile(ModalView.name)['type']=='pdf'" id="MODAL_pdf"
-                            class="min-vh-50 w-100" type="application/pdf" :src="ModalView.src">
-                        <audio v-else-if="typeFile(ModalView.name)['type']=='mp3'" id="MODAL_mp3" class="w-100"
-                            :src="ModalView.src" controls>
-                        </audio>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary col" data-bs-dismiss="modal">Close</button>

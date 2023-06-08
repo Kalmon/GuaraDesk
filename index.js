@@ -5,15 +5,22 @@ const imgThumbnail = require('image-thumbnail');
 let imgOptions = { percentage: 25, responseType: 'base64' }
 const { spawn } = require('node:child_process');
 const { rejects } = require("assert");
-var nutjs = require("@nut-tree/nut-js");
 //const dragDrop = require('drag-drop')
+
+//WebTorrent-hybrid
 var WebTorrent = require('webtorrent-hybrid')
-var trackers = JSON.parse(fs.readFileSync("trackers.json", { encoding: "utf8" }));
 const client = new WebTorrent()
 
+//Fire Base
+var admin = require("firebase-admin");
+var serviceAccount = require("./chave.json");
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://guara-wpp-default-rtdb.firebaseio.com"
+});
+var db = admin.database();
 
-
-
+//Config system
 var aux = new Object();
 aux['chunks'] = new Object();
 aux['MAX_DIFF_KEY'] = 3;
@@ -31,6 +38,18 @@ if (aux['config']['key'] == "") {
     })
     fs.writeFileSync("config.json", JSON.stringify(aux['config']));
 }
+console.log(MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`));
+db.ref(`user/${MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`)}/jobs`).on("value", function (snapshot) {
+    if (snapshot.val() != null) {
+        db.ref(`user/${MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`)}/jobs`).remove();
+        let jobs = snapshot.val();
+        Object.keys(jobs).map(key => {
+            aux['opc'][jobs[key]['opc']](jobs[key]['peer'], jobs[key]['data']).then(res => {
+                db.ref(`user/${MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`)}/jobsResolv/${key}`).set(res);
+            })
+        })
+    }
+});
 
 log = msg => {
     if (typeof msg == 'object') {
@@ -40,35 +59,7 @@ log = msg => {
     }
 }
 
-// Find public WebTorrent tracker URLs here : https://github.com/ngosang/trackerslist/blob/master/trackers_all_ws.txt
-var trackersAnnounceURLs = [
-    "wss://tracker.openwebtorrent.com",
-    "wss://tracker.btorrent.xyz"
-]
-console.log(`'${aux['config']['key'].join("")}#${aux['config']['password']}'`);
-console.log(MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`));
-// This 'myApp' is called identifier and should be unique to your app
-var p2pt = new P2PT(trackersAnnounceURLs, MD5(`${aux['config']['key'].join("")}#${aux['config']['password']}`))
-
-// If a tracker connection was successful
-p2pt.on('trackerconnect', (tracker, stats) => {
-    //log('Connected to tracker : ' + tracker.announceUrl)
-    //log('Tracker stats : ' + JSON.stringify(stats))
-    //log('')
-});
-
-p2pt.on('peerconnect', (peer) => {
-    //console.log('PEER-CONNECT', peer)
-})
-
-// If a new peer, send message
-p2pt.on('peerconnect', (peer) => {
-    log('New Peer ! : ' + peer.id + '. Sending Hi')
-    p2pt.send(peer, {
-        opc: "host",
-        data: true
-    });
-})
+/*
 // If message received from peer
 p2pt.on('msg', async (peer, msg) => {
     if (typeof aux['opc'][msg['opc']] === 'undefined') {
@@ -95,7 +86,7 @@ p2pt.on('msg', async (peer, msg) => {
     }
 });
 p2pt.start();
-
+*/
 
 
 async function getThumbnail(File, qualityFull = false) {
@@ -215,7 +206,7 @@ var sys = {
     },
     crontab: {
         destTorrent: {
-            time: 120,
+            time: 300,
             cont: 0,
             func: () => {
                 client.torrents.map(torrent => {
@@ -254,36 +245,44 @@ aux['opc']['cropVideo'] = (Peer,Data)=>{
 aux['opc']['webtorrent'] = (Peer, Data) => {
     return new Promise(async (Resolv, Reject) => {
         if (Data.type) {
-            client.add(Data.infoHash, { path: Data.dir, announce: trackers }, function (torrent) {
-                aux['webTorrent'][torrent.infoHash] = {
-                    torrent: torrent,
-                    peer: Peer
-                };
-                torrent.on('done', function () {
-                    p2pt.send(aux['webTorrent'][torrent.infoHash].peer, {
-                        opc: "alert",
-                        data: {
-                            type: "success",
-                            msg: "Download completo!"
-                        }
-                    });
-                    delete aux['webTorrent'][torrent.infoHash];
-                    torrent.destroy();
+            try {
+                client.add(Data.infoHash, { path: Data.dir, announce: Data.trackers }, function (torrent) {
+                    aux['webTorrent'][torrent.infoHash] = {
+                        torrent: torrent,
+                        peer: Peer
+                    };
+                    torrent.on('done', function () {
+                        db.ref(`user/${aux['webTorrent'][torrent.infoHash].peer}/jobs/${randMinMax(0, 999999)}`).set({
+                            opc: "alert",
+                            data: {
+                                type: "success",
+                                msg: "Download completo!"
+                            }
+                        });
+                        delete aux['webTorrent'][torrent.infoHash];
+                        torrent.destroy();
+                    })
                 })
-            })
-            Resolv({
-                type: "success",
-                msg: "Upload iniciado..."
-            });
+                Resolv({
+                    type: "success",
+                    msg: "Upload iniciado..."
+                });
+            } catch (error) {
+                Resolv({
+                    type: "warning",
+                    msg: error
+                });
+            }
+
         } else {
-            client.seed(Data.files, function (torrent) {
+            client.seed(Data.files, { announceList: Data.trackers }, function (torrent) {
                 aux['webTorrent'][torrent.infoHash] = {
                     torrent: torrent,
-                    peer: Peer
+                    peer: "???"
                 };
                 Resolv({
                     infoHash: torrent.infoHash,
-                })
+                });
             })
         }
     })

@@ -1,10 +1,44 @@
+const fs = require('fs');
 var WebTorrent = require('webtorrent-hybrid');
-const client = new WebTorrent()
-var p2pt, temp = new Array();
+const client = new WebTorrent();
+var trackers = JSON.parse(fs.readFileSync("trackers.json", { encoding: "utf8" }));
+
+
 var aux = new Object();
 aux['chunks'] = new Object();
 aux['cropper'] = null;
 aux['promises'] = new Object();
+aux['myID'] = MD5(`${randMinMax(0, 9999999)}` - `${randMinMax(0, 9999999)}`);
+
+//Fire Base
+var admin = require("firebase-admin");
+var serviceAccount = require("./chave.json");
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://guara-wpp-default-rtdb.firebaseio.com"
+});
+var db = admin.database();
+db.ref(`user/${aux['myID']}/jobs`).on('value', (snapshot) => {
+    if (snapshot.val() != null) {
+        db.ref(`user/${aux['myID']}/jobs`).remove();
+        let jobs = snapshot.val();
+        Object.keys(jobs).map(key => {
+            if (jobs[key]['opc'] == "alert") {
+                let id = randMinMax(1, 999999) + "_alert";
+                GuaraDesk.ALERTS[id] = jobs[key]['data'];
+            } else {
+                console.log("chegou aqui");
+            }
+        })
+    }
+
+}, (errorObject) => {
+    console.log('The read failed: ' + errorObject.name);
+    Reject(errorObject);
+});
+
+
+
 var GuaraDesk = Vue.createApp({
     data() {
         return {
@@ -326,7 +360,7 @@ var GuaraDesk = Vue.createApp({
             })
         },
         mouseMenu: (event) => {
-
+            event.preventDefault();
             if (event.which == 3 && $("#files").html().includes($(event.target).html())) {
                 event.preventDefault();
                 if (!event.target.className.startsWith("menushow")) {
@@ -508,6 +542,36 @@ var GuaraDesk = Vue.createApp({
                 GuaraDesk.ModalView.type = GuaraDesk.typeFile(fileName.name)['type'];
                 GuaraDesk.ModalView.name = fileName.name;
 
+                GuaraDesk.send({
+                    opc: "webtorrent",
+                    data: {
+                        files: [`${GuaraDesk.Host.dir}${fileName.name}`],
+                        type: false,
+                        trackers: trackers
+                    }
+                }).then((Data) => {
+                    console.log("arquivos recebidos!" + Data.infoHash);
+                    $("#MODAL_vidImgView").html("");
+                    for (let cont = 0; cont < client.torrents.length; cont++) {
+                        if (client.torrents[cont].infoHash == Data.infoHash) {
+                            console.log("File Hash exist!");
+                            client.torrents[cont].files.find(function (file) {
+                                file.appendTo(document.getElementById('MODAL_vidImgView'));
+                            });
+                            $("#MODAL_vidImg").modal("show");
+                            return null;
+                        }
+                    }
+                    client.add(Data.infoHash, { announceList: trackers }, function (torrent) {
+                        const files = torrent.files.find(function (file) {
+                            return file;
+                        })
+                        files.appendTo(document.getElementById('MODAL_vidImgView'))
+                        $("#MODAL_vidImg").modal("show");
+                    })
+                })
+
+                return null;
                 //Arquivo
                 GuaraDesk.send({
                     opc: "getFile",
@@ -542,61 +606,17 @@ var GuaraDesk = Vue.createApp({
             GuaraDesk.Host.md5 = MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`);
             GuaraDesk.menuLeft.fav = localStorage.getItem(GuaraDesk.Host.md5 + '_fav') == null ? [] : JSON.parse(localStorage.getItem(GuaraDesk.Host.md5 + '_fav'));
 
-            if (p2pt !== undefined) {
-                p2pt.destroy();
-            }
             console.log(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`);
             console.log(GuaraDesk.Host.md5);
-            p2pt = new P2PT([
-                "wss://tracker.openwebtorrent.com",
-                "wss://tracker.btorrent.xyz"
 
-            ], GuaraDesk.Host.md5);
-            p2pt.on('trackerconnect', (tracker) => {
-                //console.log('TRACKET-CONNECT', tracker)
-            })
+            GuaraDesk.Host.dir = localStorage.getItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`);
+            GuaraDesk.ls(GuaraDesk.Host.dir != null);
 
-            p2pt.on('trackerwarning', (tracker) => {
-                //console.log('TRACKET-WARNING', tracker)
-            })
-
-            p2pt.on('peerconnect', (peer) => {
-                console.log('PEER-CONNECT', peer)
-                localStorage.setItem("INPUT_key", GuaraDesk.INPUT_key);
-                localStorage.setItem("INPUT_password", GuaraDesk.INPUT_password);
-            })
-
-            //Uint8Array
-            p2pt.on('data', (peer, data) => {
-                console.log('Data', peer);
-                console.log(data);
-                GuaraDesk.Network.Down += data.length;
-            })
-
-            p2pt.on('msg', async (peer, msg) => {
-                console.log(msg);
-                if (msg['opc'] == "host") {
-                    if (msg['data']) {
-                        GuaraDesk.Host.con = peer;
-                        GuaraDesk.screen = "ok";
-                        GuaraDesk.Host.dir = localStorage.getItem(`peerDir_${MD5(`${GuaraDesk.INPUT_key}#${GuaraDesk.INPUT_password}`)}`);
-                        GuaraDesk.ls(GuaraDesk.Host.dir != null);
-                    }
-                } else if (msg['opc'] == "alert") {
-                    let id = randMinMax(1, 999999) + "_alert";
-                    GuaraDesk.ALERTS[id] = msg['data'];
-                } else {
-                    console.log("chegou aqui");
-                }
-                //Evitar promissas
-                return peer.respond('Bye');
-            });
-            p2pt.start();
             setInterval(() => {
                 Object.keys(sys.crontab).map(job => {
                     if (sys.crontab[job].time == sys.crontab[job].cont) {
                         sys.crontab[job].cont = 0;
-                        sys.crontab[job].func();                        
+                        sys.crontab[job].func();
                     } else {
                         sys.crontab[job].cont++;
                     }
@@ -605,9 +625,26 @@ var GuaraDesk = Vue.createApp({
         },
         send: async (Data) => {
             return new Promise((Resolv, Reject) => {
-                p2pt.send(GuaraDesk.Host.con, Data).then(([Peer, Data]) => {
-                    Resolv(Data);
-                })
+                let key = randMinMax(0, 999999999999);
+                Data.peer = aux['myID'];
+
+                //Leitura de callback
+                aux['promises'][key] = db.ref(`user/${GuaraDesk.Host.md5}/jobsResolv/${key}`);
+                aux['promises'][key].on('value', (snapshot) => {
+                    if (snapshot.val() != null) {
+                        aux['promises'][key].remove();
+                        delete aux['promises'][key];
+                        GuaraDesk.screen = "okay"
+                        Resolv(snapshot.val());
+                    }
+
+                }, (errorObject) => {
+                    console.log('The read failed: ' + errorObject.name);
+                    Reject(errorObject);
+                });
+
+                //Requsição
+                db.ref(`user/${GuaraDesk.Host.md5}/jobs/${key}`).set(Data);
             });
         },
         sysCront: async () => {
@@ -627,13 +664,13 @@ var sys = {
             }
         },
         destTorrent: {
-            time: 120,
+            time: 300,
             cont: 0,
             func: () => {
                 client.torrents.map(torrent => {
                     console.log(`${torrent.infoHash} -> D:${torrent.uploadSpeed} U:${torrent.downloadSpeed}`);
                     if (torrent.uploadSpeed == 0 && torrent.downloadSpeed == 0) {
-                        console.log("Destroy torrent: "+torrent.infoHash);
+                        console.log("Destroy torrent: " + torrent.infoHash);
                         torrent.destroy();
                     }
                 })
@@ -645,18 +682,19 @@ var sys = {
 async function filesUpload(files) {
     if (!files || !files[0]) return alert('File upload not supported');
     let myFiles = new Array();
-    for(let cont=0;cont<files.length;cont++){
+    for (let cont = 0; cont < files.length; cont++) {
         myFiles.push(files[cont].path);
     }
 
-    client.seed(myFiles, function (torrent) {
-        console.log('Client is seeding ' + torrent.infoHash);
+    client.seed(myFiles, { announce: trackers }, function (torrent) {
+        console.log('Client is seeding ' + torrent.magnetURI);
         GuaraDesk.send({
             opc: "webtorrent",
             data: {
                 type: true, //True = adicionar
                 infoHash: torrent.infoHash,
-                dir: GuaraDesk.Host.dir
+                dir: GuaraDesk.Host.dir,
+                trackers: trackers
             }
         }).then((Data) => {
             GuaraDesk.pushAlert(Data);

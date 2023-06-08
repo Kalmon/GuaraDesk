@@ -120,3 +120,7 @@ body {
 .h-90{
     height: 90%;
 }
+
+#MODAL_vidImgView video, #MODAL_vidImgView iframe, #MODAL_vidImgView img{
+    height: 50vh;
+}
